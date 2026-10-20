@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dyafa · Housekeeping Command</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ============================================================
+   DYAFA HOUSEKEEPING COMMAND — strict palette:
+   #1ba9a4 (teal) · #1D1D1A (dark) · #E0E0E0 (light)
+   ============================================================ */
+:root{
+  --teal:#1ba9a4; --dark:#1D1D1A; --light:#E0E0E0;
+  --teal-05:rgba(27,169,164,0.05); --teal-10:rgba(27,169,164,0.10);
+  --teal-20:rgba(27,169,164,0.20); --teal-40:rgba(27,169,164,0.40);
+  --teal-70:rgba(27,169,164,0.70);
+  --light-04:rgba(224,224,224,0.04); --light-06:rgba(224,224,224,0.06);
+  --light-08:rgba(224,224,224,0.08); --light-12:rgba(224,224,224,0.12);
+  --light-20:rgba(224,224,224,0.20); --light-40:rgba(224,224,224,0.40);
+  --light-60:rgba(224,224,224,0.60); --light-80:rgba(224,224,224,0.80);
+  --font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'SF Mono','JetBrains Mono','Menlo',monospace;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--dark);color:var(--light);overflow:hidden;-webkit-font-smoothing:antialiased;font-size:14px}
+::selection{background:var(--teal-40);color:var(--light)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--light-12);border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--light-20)}
+
+/* ---------- APP LAYOUT ---------- */
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh;position:relative;z-index:1}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{background:linear-gradient(180deg,#1D1D1A 0%,#181816 100%);border-right:1px solid var(--light-06);display:flex;flex-direction:column;padding:20px 0 14px;position:relative}
+.sidebar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal-40),transparent)}
+.brand{display:flex;align-items:center;gap:11px;padding:0 22px 22px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--teal) 0%,#14827e 100%);display:grid;place-items:center;position:relative;box-shadow:0 0 22px var(--teal-40),inset 0 0 12px rgba(255,255,255,0.15)}
+.brand-mark svg{width:18px;height:18px}
+.brand-text .name{font-weight:700;font-size:15px;letter-spacing:.14em;color:var(--light)}
+.brand-text .sub{font-size:9.5px;letter-spacing:.24em;color:var(--light-40);margin-top:2px}
+.nav-section{padding:0 12px;margin-bottom:14px}
+.nav-label{font-size:9px;letter-spacing:.22em;color:var(--light-40);padding:0 10px 8px;text-transform:uppercase;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:11px;padding:8px 11px;border-radius:8px;cursor:pointer;color:var(--light-60);font-size:12.5px;font-weight:500;transition:all .18s var(--ease);position:relative;border:1px solid transparent}
+.nav-item svg{width:15px;height:15px;opacity:.75;flex-shrink:0}
+.nav-item:hover{background:var(--light-04);color:var(--light)}
+.nav-item.active{background:linear-gradient(90deg,var(--teal-20),var(--teal-05));color:var(--light);border-color:var(--teal-40);box-shadow:inset 0 0 20px var(--teal-10)}
+.nav-item.active svg{opacity:1;filter:drop-shadow(0 0 6px var(--teal))}
+.nav-item.active::before{content:'';position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:18px;border-radius:0 3px 3px 0;background:var(--teal);box-shadow:0 0 12px var(--teal)}
+.nav-badge{margin-left:auto;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:9px;background:var(--teal-20);color:var(--teal);border:1px solid var(--teal-40);letter-spacing:.05em}
+.mode-box{margin:auto 12px 12px;padding:12px;border-radius:10px;background:var(--light-04);border:1px solid var(--light-08)}
+.mode-title{font-size:9px;letter-spacing:.2em;color:var(--light-40);margin-bottom:8px;font-weight:600}
+.mode-pill{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:7px;cursor:pointer;font-size:11.5px;color:var(--light-60);transition:all .16s var(--ease);margin-bottom:4px;border:1px solid transparent}
+.mode-pill:last-child{margin-bottom:0}
+.mode-pill:hover{background:var(--light-04);color:var(--light)}
+.mode-pill.active{background:var(--teal-20);color:var(--teal);border-color:var(--teal-40)}
+.mode-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--light-20);flex-shrink:0}
+.mode-pill.active .dot{background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.sidebar-foot{padding:12px 22px 0;border-top:1px solid var(--light-06);font-size:10px;color:var(--light-40);display:flex;justify-content:space-between;margin:0 12px}
+
+/* ---------- MAIN ---------- */
+.main{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:var(--dark);position:relative}
+.topbar{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--light-06);background:rgba(29,29,26,0.85);backdrop-filter:blur(10px);flex-shrink:0;z-index:5}
+.page-title{font-size:15px;font-weight:600;letter-spacing:.01em}
+.page-sub{font-size:10.5px;color:var(--light-40);margin-top:2px;letter-spacing:.04em}
+.topbar-spacer{flex:1}
+.sync-indicator{display:flex;align-items:center;gap:7px;font-size:10.5px;padding:5px 11px;border-radius:20px;background:var(--teal-10);border:1px solid var(--teal-40);color:var(--teal);letter-spacing:.04em;font-weight:500}
+.sync-indicator .pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.85)}}
+.demo-badge{font-size:9.5px;font-weight:700;letter-spacing:.14em;padding:4px 9px;border-radius:5px;background:var(--light-06);color:var(--light-60);border:1px solid var(--light-12)}
+.clock{font-family:var(--mono);font-size:11px;color:var(--light-60);letter-spacing:.06em}
+.avatar{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#14827e);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--dark);box-shadow:0 0 16px var(--teal-40)}
+.icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--light-08);background:var(--light-04);display:grid;place-items:center;cursor:pointer;color:var(--light-60);transition:all .16s var(--ease)}
+.icon-btn:hover{border-color:var(--teal-40);color:var(--teal);background:var(--teal-10)}
+.icon-btn svg{width:14px;height:14px}
+
+.content{flex:1;overflow-y:auto;overflow-x:hidden;padding:24px;position:relative}
+.tab-pane{display:none;animation:fadeUp .4s var(--ease)}
+.tab-pane.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---------- GENERIC ---------- */
+.card{background:linear-gradient(160deg,rgba(224,224,224,0.035),rgba(224,224,224,0.012));border:1px solid var(--light-08);border-radius:12px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s var(--ease)}
+.card:hover{border-color:var(--light-20)}
+.card-accent::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal-40),transparent)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:12.5px;font-weight:600;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+.card-title .tick{width:3px;height:14px;border-radius:2px;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.card-sub{font-size:10px;color:var(--light-40);letter-spacing:.04em}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;border:1px solid var(--light-12);background:var(--light-04);color:var(--light-80);transition:all .16s var(--ease);font-family:inherit;letter-spacing:.02em}
+.btn:hover{background:var(--light-08);border-color:var(--light-20);color:var(--light)}
+.btn-primary{background:var(--teal);color:var(--dark);border-color:var(--teal);box-shadow:0 0 18px var(--teal-40)}
+.btn-primary:hover{background:#1fbab4;color:var(--dark);box-shadow:0 0 26px var(--teal-70)}
+.btn-ghost{background:transparent;border-color:var(--light-12)}
+.btn-sm{padding:4px 9px;font-size:10.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--light-12);background:var(--light-04);color:var(--light-60)}
+.badge-teal{border-color:var(--teal-40);background:var(--teal-10);color:var(--teal)}
+.badge-solid{background:var(--teal);color:var(--dark);border-color:var(--teal)}
+
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.section-title{font-size:13px;font-weight:600;letter-spacing:.02em;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.section-title::before{content:'';width:3px;height:15px;background:var(--teal);border-radius:2px;box-shadow:0 0 8px var(--teal)}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;border-radius:16px;overflow:hidden;margin-bottom:20px;background:radial-gradient(ellipse at 20% 0%,rgba(27,169,164,0.18),transparent 55%),radial-gradient(ellipse at 90% 100%,rgba(27,169,164,0.10),transparent 55%),linear-gradient(160deg,#1f1f1c,#191917);border:1px solid var(--light-08);min-height:220px;display:flex;align-items:center}
+#hero-canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.85}
+.hero-content{position:relative;z-index:2;padding:32px 36px;max-width:660px}
+.hero-eyebrow{font-size:10px;letter-spacing:.28em;color:var(--teal);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.hero-eyebrow::before{content:'';width:22px;height:1px;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.hero h1{font-size:28px;font-weight:700;letter-spacing:-.015em;line-height:1.2;margin-bottom:10px}
+.hero h1 .accent{color:var(--teal)}
+.hero p{font-size:12.5px;color:var(--light-60);line-height:1.6;max-width:480px}
+.hero-meta{display:flex;gap:24px;margin-top:20px;flex-wrap:wrap}
+.hero-meta-item .v{font-size:18px;font-weight:700;font-family:var(--mono);letter-spacing:-.01em}
+.hero-meta-item .v.teal{color:var(--teal)}
+.hero-meta-item .l{font-size:9.5px;letter-spacing:.16em;color:var(--light-40);margin-top:3px;text-transform:uppercase}
+
+/* ---------- KPI ---------- */
+.kpi{padding:16px 18px;display:flex;flex-direction:column;gap:10px;position:relative}
+.kpi-top{display:flex;justify-content:space-between;align-items:flex-start}
+.kpi-label{font-size:10px;letter-spacing:.16em;color:var(--light-40);text-transform:uppercase;font-weight:600}
+.kpi-icon{width:26px;height:26px;border-radius:7px;background:var(--teal-10);border:1px solid var(--teal-40);display:grid;place-items:center;color:var(--teal)}
+.kpi-icon svg{width:13px;height:13px}
+.kpi-value{font-size:30px;font-weight:700;font-family:var(--mono);letter-spacing:-.02em;line-height:1}
+.kpi-value .unit{font-size:13px;color:var(--light-40);margin-left:3px;font-weight:500}
+.kpi-foot{font-size:10.5px;color:var(--light-40);display:flex;align-items:center;gap:6px}
+.kpi-foot .up{color:var(--teal)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:24px;margin-top:2px}
+.spark span{width:5px;background:var(--teal-40);border-radius:1px;transition:height .4s var(--ease)}
+.spark span:last-child{background:var(--teal);box-shadow:0 0 6px var(--teal)}
+
+/* ---------- HEATMAP ---------- */
+.heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:5px}
+.hm-cell{aspect-ratio:1;border-radius:3px;background:var(--light-06);cursor:pointer;transition:all .15s var(--ease);position:relative;border:1px solid transparent}
+.hm-cell:hover{transform:scale(1.18);z-index:2;border-color:var(--teal)}
+.hm-cell[data-state="ready"]{background:var(--teal);box-shadow:0 0 6px var(--teal-70)}
+.hm-cell[data-state="clean"]{background:var(--teal-40)}
+.hm-cell[data-state="ip"]{background:var(--teal-20)}
+.hm-cell[data-state="dirty"]{background:var(--light-12)}
+.hm-cell[data-state="dnd"]{background:repeating-linear-gradient(45deg,var(--light-12),var(--light-12) 2px,transparent 2px,transparent 4px)}
+.hm-cell[data-state="ooo"]{background:repeating-linear-gradient(135deg,var(--teal-40),var(--teal-40) 2px,transparent 2px,transparent 5px)}
+.hm-cell[data-state="oos"]{background:repeating-linear-gradient(90deg,var(--light-20),var(--light-20) 2px,transparent 2px,transparent 5px)}
+.hm-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:10px;color:var(--light-60)}
+.hm-legend span{display:flex;align-items:center;gap:6px}
+.hm-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ---------- ACTIVITY ---------- */
+.activity{display:flex;flex-direction:column;gap:0}
+.act-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--light-06);align-items:flex-start}
+.act-item:last-child{border-bottom:none}
+.act-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);margin-top:5px;flex-shrink:0;box-shadow:0 0 8px var(--teal)}
+.act-dot.grey{background:var(--light-40);box-shadow:none}
+.act-body{flex:1;min-width:0}
+.act-text{font-size:11.5px;color:var(--light-80);line-height:1.45}
+.act-text b{color:var(--light);font-weight:600}
+.act-time{font-size:9.5px;color:var(--light-40);margin-top:3px;font-family:var(--mono);letter-spacing:.02em}
+
+/* ---------- ROOM GRID ---------- */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.chip{padding:5px 13px;border-radius:20px;font-size:10.5px;font-weight:600;cursor:pointer;border:1px solid var(--light-12);background:var(--light-04);color:var(--light-60);transition:all .16s var(--ease);letter-spacing:.03em}
+.chip:hover{border-color:var(--light-20);color:var(--light)}
+.chip.active{background:var(--teal-20);border-color:var(--teal-40);color:var(--teal)}
+.chip .cnt{font-size:9px;opacity:.7;margin-left:4px}
+
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.room-cell{border-radius:10px;padding:12px;cursor:pointer;background:linear-gradient(160deg,rgba(224,224,224,0.03),rgba(224,224,224,0.008));border:1px solid var(--light-08);transition:all .18s var(--ease);position:relative;overflow:hidden}
+.room-cell:hover{border-color:var(--teal-40);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+.room-cell .r-id{font-size:15px;font-weight:700;font-family:var(--mono);letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:center}
+.room-cell .r-sym{font-size:13px;line-height:1}
+.room-cell .r-type{font-size:9.5px;color:var(--light-40);margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+.room-cell .r-status{font-size:10.5px;font-weight:600;margin-top:9px;display:flex;align-items:center;gap:5px}
+.room-cell .r-meta{font-size:9.5px;color:var(--light-40);margin-top:4px;font-family:var(--mono)}
+
+.room-cell[data-s="ready"]{border-color:var(--teal-40);box-shadow:inset 0 0 20px var(--teal-10)}
+.room-cell[data-s="ready"] .r-status{color:var(--teal)}
+.room-cell[data-s="ready"] .r-sym{color:var(--teal);text-shadow:0 0 8px var(--teal)}
+.room-cell[data-s="clean"] .r-status{color:var(--teal-70)}
+.room-cell[data-s="clean"] .r-sym{color:var(--teal-70)}
+.room-cell[data-s="ip"] .r-status{color:var(--light-60)}
+.room-cell[data-s="dirty"] .r-status{color:var(--light-40)}
+.room-cell[data-s="dnd"]{border-style:dashed}
+.room-cell[data-s="dnd"] .r-status{color:var(--light-60)}
+.room-cell[data-s="ooo"]{background:repeating-linear-gradient(135deg,rgba(27,169,164,0.06),rgba(27,169,164,0.06) 6px,transparent 6px,transparent 12px)}
+.room-cell[data-s="ooo"] .r-status{color:var(--teal)}
+.room-cell[data-s="oos"]{background:repeating-linear-gradient(90deg,rgba(224,224,224,0.04),rgba(224,224,224,0.04) 5px,transparent 5px,transparent 10px)}
+.room-cell[data-s="progress"]{border-color:var(--teal-40);animation:breathe 2.4s infinite}
+@keyframes breathe{0%,100%{box-shadow:inset 0 0 12px var(--teal-10)}50%{box-shadow:inset 0 0 24px var(--teal-20)}}
+
+/* ---------- TABLE ---------- */
+.tbl{width:100%;border-collapse:collapse;font-size:11.5px}
+.tbl th{text-align:left;padding:9px 12px;font-size:9.5px;letter-spacing:.14em;color:var(--light-40);text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--light-08);white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--light-06);color:var(--light-80);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr{transition:background .14s var(--ease)}
+.tbl tbody tr:hover{background:var(--light-04)}
+.tbl .mono{font-family:var(--mono);font-size:10.5px;color:var(--light-60);letter-spacing:.01em}
+.tbl .strong{color:var(--light);font-weight:600}
+
+/* ---------- PROGRESS ---------- */
+.progress{height:5px;border-radius:3px;background:var(--light-08);overflow:hidden;position:relative}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--teal),#28c4be);border-radius:3px;box-shadow:0 0 10px var(--teal-70);transition:width .6s var(--ease)}
+
+/* ---------- RECOMMENDATION CARDS ---------- */
+.rec-card{padding:16px;border-radius:12px;border:1px solid var(--light-08);background:linear-gradient(160deg,rgba(27,169,164,0.05),rgba(224,224,224,0.01));margin-bottom:12px;transition:all .2s var(--ease);position:relative;overflow:hidden}
+.rec-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--teal);box-shadow:0 0 12px var(--teal)}
+.rec-card:hover{border-color:var(--teal-40)}
+.rec-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.rec-title{font-size:13px;font-weight:600;color:var(--light);line-height:1.4}
+.rec-id{font-size:9.5px;font-family:var(--mono);color:var(--light-40);letter-spacing:.04em;margin-bottom:4px}
+.rec-reasons{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.rec-reason{font-size:9.5px;padding:2px 8px;border-radius:4px;background:var(--light-06);border:1px solid var(--light-12);color:var(--light-60);letter-spacing:.04em}
+.rec-effect{font-size:11px;color:var(--light-60);padding:9px 12px;border-radius:7px;background:var(--light-04);border-left:2px solid var(--teal);margin-bottom:12px}
+.rec-effect b{color:var(--teal);font-family:var(--mono);font-weight:600}
+.rec-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rec-meta{margin-left:auto;font-size:9.5px;color:var(--light-40);font-family:var(--mono)}
+
+/* ---------- PHONE ---------- */
+.phone-wrap{display:flex;justify-content:center;padding:10px}
+.phone{width:340px;border-radius:32px;padding:14px;background:linear-gradient(160deg,#232320,#1a1a18);border:1px solid var(--light-12);box-shadow:0 30px 70px rgba(0,0,0,0.5),0 0 60px var(--teal-10);position:relative}
+.phone::before{content:'';position:absolute;top:14px;left:50%;transform:translateX(-50%);width:80px;height:5px;border-radius:3px;background:var(--light-20)}
+.phone-screen{background:var(--dark);border-radius:22px;overflow:hidden;padding:22px 16px 16px;border:1px solid var(--light-06);min-height:520px}
+.phone-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-top:8px}
+.phone-room{font-size:24px;font-weight:700;font-family:var(--mono)}
+.phone-status{font-size:10px;color:var(--teal);letter-spacing:.1em;font-weight:600;text-transform:uppercase}
+.checklist{display:flex;flex-direction:column;gap:7px}
+.check-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:9px;background:var(--light-04);border:1px solid var(--light-08);cursor:pointer;transition:all .15s var(--ease);font-size:11.5px}
+.check-item:hover{border-color:var(--light-20)}
+.check-item.done{background:var(--teal-10);border-color:var(--teal-40);color:var(--light)}
+.check-box{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--light-20);display:grid;place-items:center;flex-shrink:0;transition:all .16s var(--ease)}
+.check-item.done .check-box{background:var(--teal);border-color:var(--teal);box-shadow:0 0 10px var(--teal-70)}
+.check-box svg{width:9px;height:9px;opacity:0;color:var(--dark);transition:opacity .14s}
+.check-item.done .check-box svg{opacity:1}
+
+/* ---------- STAFF ---------- */
+.staff-card{padding:14px;display:flex;gap:12px;align-items:flex-start}
+.staff-avatar{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--teal),#14827e);display:grid;place-items:center;font-weight:700;font-size:12px;color:var(--dark);box-shadow:0 0 16px var(--teal-40)}
+.staff-body{flex:1;min-width:0}
+.staff-name{font-size:12.5px;font-weight:600}
+.staff-role{font-size:10px;color:var(--light-40);letter-spacing:.06em;margin-top:1px;text-transform:uppercase}
+.staff-meta{display:flex;gap:12px;margin-top:9px;font-size:10px;color:var(--light-60)}
+.staff-meta b{color:var(--teal);font-family:var(--mono);font-weight:600}
+
+/* ---------- TOASTS ---------- */
+#toasts{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:11px 16px;border-radius:9px;font-size:11.5px;background:rgba(29,29,26,0.95);backdrop-filter:blur(10px);border:1px solid var(--teal-40);color:var(--light);box-shadow:0 8px 30px rgba(0,0,0,0.4),0 0 20px var(--teal-10);display:flex;align-items:center;gap:9px;max-width:340px;animation:slideIn .3s var(--spring);pointer-events:auto}
+.toast.grey{border-color:var(--light-20)}
+.toast .t-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);flex-shrink:0}
+.toast.grey .t-dot{background:var(--light-40);box-shadow:none}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+
+/* ---------- DRAWER ---------- */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:380px;z-index:1000;background:linear-gradient(180deg,#1f1f1c,#191917);border-left:1px solid var(--light-12);transform:translateX(100%);transition:transform .35s var(--ease);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,0.5)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:20px 22px;border-bottom:1px solid var(--light-08);display:flex;justify-content:space-between;align-items:center}
+.drawer-body{padding:20px 22px;overflow-y:auto;flex:1}
+.drawer-foot{padding:16px 22px;border-top:1px solid var(--light-08);display:flex;gap:8px}
+.kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--light-06);font-size:11.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--light-40);letter-spacing:.04em}
+.kv .v{color:var(--light);font-weight:500;font-family:var(--mono);font-size:11px;text-align:right;max-width:60%}
+
+/* ---------- MODE BANNER ---------- */
+.mode-banner{padding:11px 16px;border-radius:9px;margin-bottom:18px;font-size:11.5px;display:none;align-items:center;gap:10px;background:var(--teal-10);border:1px solid var(--teal-40);color:var(--teal)}
+.mode-banner.show{display:flex}
+.mode-banner svg{width:15px;height:15px;flex-shrink:0}
+
+/* ---------- EMPTY ---------- */
+.empty{padding:36px;text-align:center;color:var(--light-40);font-size:12px}
+.empty .sym{font-size:26px;opacity:.4;margin-bottom:8px;display:block}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:820px){
+  .app{grid-template-columns:64px 1fr}
+  .brand-text,.nav-label,.nav-badge,.mode-box,.sidebar-foot{display:none}
+  .brand{justify-content:center;padding:0 0 18px}
+  .nav-item{justify-content:center;padding:10px}
+  .nav-item span{display:none}
+  .hero h1{font-size:20px}
+  .hero-content{padding:24px}
+  .hero-meta{gap:16px}
+  .content{padding:16px}
+  .topbar{padding:12px 16px;gap:10px}
+  .page-title{font-size:13px}
+  .clock,.demo-badge{display:none}
+}
+@media(max-width:560px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}.room-grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr))}.drawer{width:100%}}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1D1D1A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+      </div>
+      <div class="brand-text"><div class="name">DYAFA</div><div class="sub">HOUSEKEEPING COMMAND</div></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Operations</div>
+      <div class="nav-item active" data-tab="overview" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span>Overview</span>
+      </div>
+      <div class="nav-item" data-tab="rooms" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4"/></svg><span>Room Board</span><span class="nav-badge" id="nav-rooms-badge">24</span>
+      </div>
+      <div class="nav-item" data-tab="tasks" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Task Sheet</span>
+      </div>
+      <div class="nav-item" data-tab="attendant" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M12 18h.01"/></svg><span>Attendant</span>
+      </div>
+      <div class="nav-item" data-tab="inspection" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M9 11l2 2 4-4"/></svg><span>Inspection</span><span class="nav-badge" id="nav-insp-badge">3</span>
+      </div>
+      <div class="nav-item" data-tab="requests" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Guest Requests</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Coordination</div>
+      <div class="nav-item" data-tab="frontoffice" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V9l8-6 8 6v12M9 21v-6h6v6"/></svg><span>Front Office</span>
+      </div>
+      <div class="nav-item" data-tab="ai" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v2h-2v-2a1 1 0 0 0-1-1h-3v2a3 3 0 0 1-6 0v-2H5a1 1 0 0 0-1 1v2H2v-2a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 12 2z"/></svg><span>AI Agent</span><span class="nav-badge" id="nav-ai-badge">4</span>
+      </div>
+      <div class="nav-item" data-tab="roster" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Roster</span>
+      </div>
+      <div class="nav-item" data-tab="maintenance" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span>Maintenance</span>
+      </div>
+      <div class="nav-item" data-tab="inventory" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg><span>Inventory</span>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <div class="nav-item" data-tab="audit" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg><span>Audit & Approval</span>
+      </div>
+      <div class="nav-item" data-tab="settings" tabindex="0" role="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Configuration</span>
+      </div>
+    </div>
+
+    <div class="mode-box">
+      <div class="mode-title">OPERATING MODE</div>
+      <div class="mode-pill" data-mode="manual" tabindex="0"><span class="dot"></span>Manual</div>
+      <div class="mode-pill active" data-mode="recommendations" tabindex="0"><span class="dot"></span>Recommendations</div>
+      <div class="mode-pill" data-mode="governed" tabindex="0"><span class="dot"></span>Governed</div>
+    </div>
+
+    <div class="sidebar-foot"><span>v2.4.1</span><span id="foot-snapshot">snap · 07:12</span></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div><div class="page-title" id="page-title">Command Overview</div><div class="page-sub" id="page-sub">DYAFA RIYADH OLIVE · 2026-10-20 · Shift AM</div></div>
+      <div class="topbar-spacer"></div>
+      <div class="demo-badge">DEMO DATA</div>
+      <div class="sync-indicator"><span class="pulse"></span><span id="sync-text">SYNCED · 07:12</span></div>
+      <div class="clock" id="clock">--:--:--</div>
+      <button class="icon-btn" title="Notifications" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
+      <div class="avatar" title="Shift Supervisor">SR</div>
+    </header>
+
+    <div class="content" id="content">
+      <div class="mode-banner" id="mode-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span><b>Governed Automation active.</b> Only server-approved low-risk actions with valid authorization are executed. Pending approvals remain pending.</span>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="tab-pane active" id="tab-overview">
+        <div class="hero">
+          <canvas id="hero-canvas"></canvas>
+          <div class="hero-content">
+            <div class="hero-eyebrow">DYAFA · HOUSEKEEPING READINESS</div>
+            <h1>Autonomous coordination,<br><span class="accent">human authority.</span></h1>
+            <p>A governed AI agent that reads the current snapshot, surfaces blockers, ranks eligible work and proposes a small actionable diff — while trained people clean, inspect and authorize.</p>
+            <div class="hero-meta">
+              <div class="hero-meta-item"><div class="v teal" id="hero-ready">14</div><div class="l">Actual Ready</div></div>
+              <div class="hero-meta-item"><div class="v" id="hero-forecast">6</div><div class="l">Forecast Only</div></div>
+              <div class="hero-meta-item"><div class="v" id="hero-blocked">3</div><div class="l">Blocked Tasks</div></div>
+              <div class="hero-meta-item"><div class="v" id="hero-rec">4</div><div class="l">AI Proposals</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:18px">
+          <div class="card kpi card-accent">
+            <div class="kpi-top"><div class="kpi-label">Actual Ready</div><div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div></div>
+            <div class="kpi-value" id="kpi-ready">14<span class="unit">/ 24</span></div>
+            <div class="spark" id="spark1"></div>
+            <div class="kpi-foot"><span class="up">▲ 3</span> since 06:00 · verified</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-top"><div class="kpi-label">Forecast Only</div><div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div></div>
+            <div class="kpi-value" id="kpi-forecast">6</div>
+            <div class="spark" id="spark2"></div>
+            <div class="kpi-foot">Predicted · not confirmed ready</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-top"><div class="kpi-label">Missing ETA</div><div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div></div>
+            <div class="kpi-value" id="kpi-eta">2</div>
+            <div class="spark" id="spark3"></div>
+            <div class="kpi-foot">Front office to confirm arrival ETA</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-top"><div class="kpi-label">Blocked Tasks</div><div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg></div></div>
+            <div class="kpi-value" id="kpi-blocked">3</div>
+            <div class="spark" id="spark4"></div>
+            <div class="kpi-foot">DND · occupancy · OOO holds</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="card card-accent">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Floor Readiness Heatmap</div><div class="card-sub">12F – 14F · 24 rooms</div></div>
+            <div class="heatmap" id="heatmap"></div>
+            <div class="hm-legend">
+              <span><i style="background:var(--teal)"></i>Ready</span>
+              <span><i style="background:var(--teal-40)"></i>Clean</span>
+              <span><i style="background:var(--teal-20)"></i>In progress</span>
+              <span><i style="background:var(--light-12)"></i>Dirty</span>
+              <span><i style="background:repeating-linear-gradient(45deg,var(--light-12),var(--light-12) 2px,transparent 2px,transparent 4px)"></i>DND</span>
+              <span><i style="background:repeating-linear-gradient(135deg,var(--teal-40),var(--teal-40) 2px,transparent 2px,transparent 5px)"></i>OOO</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Live Activity</div><div class="card-sub" id="act-count">8 events</div></div>
+            <div class="activity" id="activity-feed"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Shift Summary</div><div class="card-sub">Auto-generated from auditable events</div></div>
+          <div class="grid-3">
+            <div>
+              <div class="kv"><span class="k">Rooms turned</span><span class="v">9 / 12</span></div>
+              <div class="kv"><span class="k">Avg turn time</span><span class="v">34 min</span></div>
+              <div class="kv"><span class="k">Hands-on clean</span><span class="v">22 min</span></div>
+            </div>
+            <div>
+              <div class="kv"><span class="k">Inspections passed</span><span class="v">6 / 7</span></div>
+              <div class="kv"><span class="k">Rework assigned</span><span class="v">1</span></div>
+              <div class="kv"><span class="k">DND holds</span><span class="v">1</span></div>
+            </div>
+            <div>
+              <div class="kv"><span class="k">Active OOO</span><span class="v">2</span></div>
+              <div class="kv"><span class="k">Active OOS</span><span class="v">1</span></div>
+              <div class="kv"><span class="k">Pending approvals</span><span class="v" style="color:var(--teal)">2</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROOMS -->
+      <div class="tab-pane" id="tab-rooms">
+        <div class="filter-bar" id="room-filters">
+          <div class="chip active" data-f="all">All <span class="cnt" id="cnt-all">24</span></div>
+          <div class="chip" data-f="ready">Ready</div>
+          <div class="chip" data-f="clean">Clean</div>
+          <div class="chip" data-f="ip">In progress</div>
+          <div class="chip" data-f="dirty">Dirty</div>
+          <div class="chip" data-f="dnd">DND</div>
+          <div class="chip" data-f="ooo">OOO</div>
+          <div class="chip" data-f="oos">OOS</div>
+        </div>
+        <div class="room-grid" id="room-grid"></div>
+      </div>
+
+      <!-- TASKS -->
+      <div class="tab-pane" id="tab-tasks">
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Manual Task Sheet</div><div class="card-sub">Ranked by feasible deadline · confirmed urgency · queue age</div></div>
+          <table class="tbl"><thead><tr><th>Task</th><th>Room</th><th>Type</th><th>Assignee</th><th>Priority</th><th>ETA</th><th>Status</th><th>Actions</th></tr></thead><tbody id="task-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- ATTENDANT -->
+      <div class="tab-pane" id="tab-attendant">
+        <div class="grid-2">
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="phone-screen">
+                <div class="phone-head">
+                  <div><div class="phone-room" id="att-room">1201</div><div class="phone-status" id="att-status">DEPARTURE TURN · IN PROGRESS</div></div>
+                  <div class="badge badge-teal">ETA 14:30</div>
+                </div>
+                <div style="font-size:10px;letter-spacing:.14em;color:var(--light-40);margin-bottom:8px;text-transform:uppercase">Checklist · King Room</div>
+                <div class="checklist" id="checklist"></div>
+                <div style="margin-top:14px">
+                  <div class="progress"><div class="progress-bar" id="att-progress" style="width:0%"></div></div>
+                  <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--light-40);margin-top:6px"><span id="att-prog-label">0 / 8 complete</span><span>Physical inspection required</span></div>
+                </div>
+                <button class="btn btn-primary" id="btn-submit-clean" style="width:100%;margin-top:14px;justify-content:center" disabled>Submit Clean (pending inspection)</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Attendant Instructions</div><div class="card-sub">Task-relevant notes only</div></div>
+            <div class="kv"><span class="k">Room</span><span class="v">1201 · King · 12F</span></div>
+            <div class="kv"><span class="k">Task</span><span class="v">TSK-4412 · Departure Turn</span></div>
+            <div class="kv"><span class="k">Service window</span><span class="v">— vacant, no restriction</span></div>
+            <div class="kv"><span class="k">Access</span><span class="v">Key card confirmed</span></div>
+            <div class="kv"><span class="k">Guest preference</span><span class="v">Extra pillows · hypoallergenic</span></div>
+            <div class="kv"><span class="k">Notes</span><span class="v" style="max-width:55%">Minibar restock · replace bathrobe</span></div>
+            <div style="margin-top:16px;padding:11px;border-radius:8px;background:var(--teal-05);border:1px solid var(--teal-20);font-size:11px;color:var(--light-60);line-height:1.55"><b style="color:var(--teal)">Safety gate:</b> Do not enter or start ordinary service under DND, unresolved occupancy or an unsafe condition. Record a deferment and contact the supervisor.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSPECTION -->
+      <div class="tab-pane" id="tab-inspection">
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Supervisor Inspection Queue</div><div class="card-sub">Physical inspection required · screen prediction never substitutes</div></div>
+          <table class="tbl"><thead><tr><th>Room</th><th>Assignee</th><th>Submitted</th><th>Checklist</th><th>Status</th><th>Actions</th></tr></thead><tbody id="insp-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- REQUESTS -->
+      <div class="tab-pane" id="tab-requests"><div class="grid-2" id="requests-grid"></div></div>
+
+      <!-- FRONT OFFICE -->
+      <div class="tab-pane" id="tab-frontoffice">
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Occupancy Discrepancies</div><div class="card-sub">Sleep / skip / person mismatches</div></div>
+            <table class="tbl"><thead><tr><th>Room</th><th>PMS</th><th>Physical</th><th>Action</th></tr></thead><tbody id="disc-tbody"></tbody></table>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Readiness vs Forecast</div><div class="card-sub">Actual confirmed separate from predicted</div></div>
+            <table class="tbl"><thead><tr><th>Room</th><th>Actual</th><th>Forecast</th><th>Δ</th></tr></thead><tbody id="readiness-tbody"></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Blocked Room Return-to-Service</div><div class="card-sub">OOO / OOS require approved workflow · no automatic release</div></div>
+          <table class="tbl"><thead><tr><th>Room</th><th>Block</th><th>Reason</th><th>Owner</th><th>Next step</th></tr></thead><tbody id="blocked-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- AI -->
+      <div class="tab-pane" id="tab-ai">
+        <div class="card" style="margin-bottom:16px;background:linear-gradient(160deg,rgba(27,169,164,0.08),rgba(224,224,224,0.01))">
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="width:40px;height:40px;border-radius:11px;background:var(--teal);display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 24px var(--teal-70)">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1D1D1A" stroke-width="2.4"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h3a3 3 0 0 1 3 3v2h-2v-2a1 1 0 0 0-1-1h-3v2a3 3 0 0 1-6 0v-2H5a1 1 0 0 0-1 1v2H2v-2a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 12 2z"/></svg>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;margin-bottom:5px">Coordination Agent · Recommendations Mode</div>
+              <div style="font-size:11.5px;color:var(--light-60);line-height:1.6">Proposals are ranked by feasible deadline, confirmed urgency, queue age, room-type pressure, travel efficiency and balanced workload under configured weights. <b style="color:var(--teal)">No autonomous writes in this mode.</b> The server-side policy service makes the final eligibility decision.</div>
+            </div>
+          </div>
+        </div>
+        <div id="rec-list"></div>
+      </div>
+
+      <!-- ROSTER -->
+      <div class="tab-pane" id="tab-roster"><div class="grid-3" id="staff-grid"></div></div>
+
+      <!-- MAINTENANCE -->
+      <div class="tab-pane" id="tab-maintenance">
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Maintenance & Service Blocks</div><div class="card-sub">OOO and OOS have distinct inventory semantics</div></div>
+          <table class="tbl"><thead><tr><th>Ticket</th><th>Room</th><th>Block</th><th>Defect</th><th>Engineer</th><th>Status</th><th>Action</th></tr></thead><tbody id="maint-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="tab-pane" id="tab-inventory"><div class="grid-3" id="inv-grid"></div></div>
+
+      <!-- AUDIT -->
+      <div class="tab-pane" id="tab-audit">
+        <div class="grid-2" style="margin-bottom:18px">
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Pending Approvals</div><div class="card-sub">Expiry means review again · time never grants approval</div></div>
+            <div id="approvals-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Policy & Authorization</div><div class="card-sub">Current role · property isolation</div></div>
+            <div class="kv"><span class="k">Role</span><span class="v">Shift Supervisor</span></div>
+            <div class="kv"><span class="k">Property</span><span class="v">DYAFA-RIYADH-01</span></div>
+            <div class="kv"><span class="k">Policy version</span><span class="v">policy-2026.10.3</span></div>
+            <div class="kv"><span class="k">Allowed low-risk</span><span class="v">Start assigned task</span></div>
+            <div class="kv"><span class="k">Requires approval</span><span class="v">Cross-section reassign</span></div>
+            <div class="kv"><span class="k">Blocked</span><span class="v">PMS write · charge · DND clear</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Audit Log</div><div class="card-sub" id="audit-count">0 entries</div></div>
+          <table class="tbl"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Target</th><th>Outcome</th><th>Correlation</th></tr></thead><tbody id="audit-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="tab-pane" id="tab-settings">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Property Configuration</div></div>
+            <div class="kv"><span class="k">Property ID</span><span class="v">DYAFA-RIYADH-01</span></div>
+            <div class="kv"><span class="k">Business date</span><span class="v">2026-10-20</span></div>
+            <div class="kv"><span class="k">Release standard</span><span class="v">Inspect-then-release</span></div>
+            <div class="kv"><span class="k">Sections</span><span class="v">A · B · C</span></div>
+            <div class="kv"><span class="k">Languages</span><span class="v">EN · AR (RTL)</span></div>
+            <div class="kv"><span class="k">Snapshot version</span><span class="v">v.2026.10.20-0712</span></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title"><span class="tick"></span>Integration Health</div></div>
+            <div class="kv"><span class="k">PMS adapter</span><span class="v" style="color:var(--teal)">● Connected · OPERA Cloud</span></div>
+            <div class="kv"><span class="k">Task service</span><span class="v" style="color:var(--teal)">● Healthy</span></div>
+            <div class="kv"><span class="k">Event stream</span><span class="v" style="color:var(--teal)">● 142 events/min</span></div>
+            <div class="kv"><span class="k">Audit store</span><span class="v" style="color:var(--teal)">● Healthy</span></div>
+            <div class="kv"><span class="k">Model service</span><span class="v" style="color:var(--teal)">● Online · read-only</span></div>
+            <div class="kv"><span class="k">Last reconcile</span><span class="v">07:12:04 · 0 conflicts</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="card-head"><div class="card-title"><span class="tick"></span>Hard Safety Gates</div></div>
+          <div class="grid-3" style="font-size:11px;color:var(--light-60);line-height:1.7">
+            <div>✓ DND / service-declined blocks ordinary entry</div>
+            <div>✓ Unresolved occupancy discrepancy blocks start</div>
+            <div>✓ OOO/OOS never treated as score penalty</div>
+            <div>✓ No auto-clear of DND to improve score</div>
+            <div>✓ Pending approvals remain pending</div>
+            <div>✓ Failed writes remain visible · no duplicate tasks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div><div style="font-size:9px;letter-spacing:.2em;color:var(--light-40);margin-bottom:3px">ROOM DETAIL</div><div style="font-size:18px;font-weight:700;font-family:var(--mono)" id="dr-title">1201</div></div>
+    <button class="icon-btn" id="dr-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+  <div class="drawer-foot" id="dr-foot"></div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* ============================================================
+   DYAFA HOUSEKEEPING COMMAND — application logic
+   ============================================================ */
+
+const state = {
+  mode: 'recommendations',
+  tab: 'overview',
+  property: 'DYAFA-RIYADH-01',
+  businessDate: '2026-10-20',
+  snapshot: 'v.2026.10.20-0712',
+  roomFilter: 'all',
+  rooms: [
+    {id:'1201',floor:12,type:'King',s:'dirty',occ:'vacant',task:'TSK-4412',assignee:'A. Rahman',eta:'14:30',priority:'high',note:'Departure turn · minibar restock'},
+    {id:'1202',floor:12,type:'Twin',s:'dnd',occ:'occupied',task:null,assignee:null,eta:null,priority:'hold',note:'DND active · service window 16:00–18:00'},
+    {id:'1203',floor:12,type:'King',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:40 · released'},
+    {id:'1204',floor:12,type:'Suite',s:'clean',occ:'vacant',task:'TSK-4415',assignee:'M. Haddad',eta:'—',priority:'medium',note:'Awaiting inspection'},
+    {id:'1205',floor:12,type:'Twin',s:'progress',occ:'vacant',task:'TSK-4418',assignee:'L. Farah',eta:'14:45',priority:'high',note:'Arrival · ETA 14:45'},
+    {id:'1206',floor:12,type:'King',s:'ooo',occ:'blocked',task:null,assignee:null,eta:null,priority:'—',note:'AC compressor · OOO'},
+    {id:'1207',floor:12,type:'King',s:'dirty',occ:'vacant',task:'TSK-4420',assignee:'A. Rahman',eta:'15:10',priority:'medium',note:'Departure turn'},
+    {id:'1208',floor:12,type:'Twin',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:55'},
+    {id:'1301',floor:13,type:'King',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:20'},
+    {id:'1302',floor:13,type:'Twin',s:'clean',occ:'vacant',task:'TSK-4422',assignee:'S. Nasser',eta:'—',priority:'medium',note:'Awaiting inspection'},
+    {id:'1303',floor:13,type:'King',s:'dirty',occ:'vacant',task:'TSK-4423',assignee:'S. Nasser',eta:'15:20',priority:'medium',note:'Departure turn'},
+    {id:'1304',floor:13,type:'Suite',s:'ready',occ:'occupied',task:null,assignee:null,eta:'—',priority:'—',note:'Stayover · service window 10:00–12:00'},
+    {id:'1305',floor:13,type:'King',s:'oos',occ:'blocked',task:null,assignee:null,eta:null,priority:'—',note:'Water shutoff · OOS'},
+    {id:'1306',floor:13,type:'Twin',s:'ip',occ:'vacant',task:'TSK-4426',assignee:'L. Farah',eta:'14:50',priority:'high',note:'Arrival · ETA 14:50'},
+    {id:'1307',floor:13,type:'King',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:35'},
+    {id:'1308',floor:13,type:'Twin',s:'dirty',occ:'vacant',task:'TSK-4428',assignee:'M. Haddad',eta:'15:30',priority:'low',note:'Departure turn'},
+    {id:'1401',floor:14,type:'King',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:10'},
+    {id:'1402',floor:14,type:'Twin',s:'clean',occ:'vacant',task:'TSK-4430',assignee:'A. Rahman',eta:'—',priority:'medium',note:'Awaiting inspection'},
+    {id:'1403',floor:14,type:'Suite',s:'dirty',occ:'vacant',task:'TSK-4431',assignee:'S. Nasser',eta:'15:40',priority:'low',note:'Departure turn'},
+    {id:'1404',floor:14,type:'King',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:50'},
+    {id:'1405',floor:14,type:'Twin',s:'ip',occ:'vacant',task:'TSK-4433',assignee:'L. Farah',eta:'15:00',priority:'high',note:'Arrival · ETA 15:00'},
+    {id:'1406',floor:14,type:'King',s:'dnd',occ:'occupied',task:null,assignee:null,eta:null,priority:'hold',note:'DND active · guest requested privacy'},
+    {id:'1407',floor:14,type:'Twin',s:'ready',occ:'vacant',task:null,assignee:null,eta:'—',priority:'—',note:'Inspected 06:25'},
+    {id:'1408',floor:14,type:'King',s:'ooo',occ:'blocked',task:null,assignee:null,eta:null,priority:'—',note:'Bathroom leak · OOO'}
+  ],
+  tasks: [
+    {id:'TSK-4412',room:'1201',type:'Departure Turn',assignee:'A. Rahman',priority:'high',eta:'14:30',status:'in-progress',reasons:['Arrival','ETA 14:30']},
+    {id:'TSK-4418',room:'1205',type:'Departure Turn',assignee:'L. Farah',priority:'high',eta:'14:45',status:'in-progress',reasons:['Arrival','ETA 14:45']},
+    {id:'TSK-4426',room:'1306',type:'Arrival Prep',assignee:'L. Farah',priority:'high',eta:'14:50',status:'in-progress',reasons:['Arrival','ETA 14:50']},
+    {id:'TSK-4433',room:'1405',type:'Arrival Prep',assignee:'L. Farah',priority:'high',eta:'15:00',status:'in-progress',reasons:['Arrival','ETA 15:00']},
+    {id:'TSK-4415',room:'1204',type:'Stayover',assignee:'M. Haddad',priority:'medium',eta:'—',status:'awaiting-inspection',reasons:['Clean submitted']},
+    {id:'TSK-4422',room:'1302',type:'Stayover',assignee:'S. Nasser',priority:'medium',eta:'—',status:'awaiting-inspection',reasons:['Clean submitted']},
+    {id:'TSK-4430',room:'1402',type:'Stayover',assignee:'A. Rahman',priority:'medium',eta:'—',status:'awaiting-inspection',reasons:['Clean submitted']},
+    {id:'TSK-4420',room:'1207',type:'Departure Turn',assignee:'A. Rahman',priority:'medium',eta:'15:10',status:'queued',reasons:['Departure']},
+    {id:'TSK-4423',room:'1303',type:'Departure Turn',assignee:'S. Nasser',priority:'medium',eta:'15:20',status:'queued',reasons:['Departure']},
+    {id:'TSK-4428',room:'1308',type:'Departure Turn',assignee:'M. Haddad',priority:'low',eta:'15:30',status:'queued',reasons:['Departure']},
+    {id:'TSK-4431',room:'1403',type:'Departure Turn',assignee:'S. Nasser',priority:'low',eta:'15:40',status:'queued',reasons:['Departure']}
+  ],
+  recommendations: [
+    {id:'REC-001',title:'Reassign TSK-4418 from Section B to Section A',recordIds:['TSK-4418','TSK-4420'],reasons:['Capacity','Deadline pressure'],effect:'Projected ready <b>15:10 → 14:50</b> for arrival 14:45',requiresApproval:true,role:'Shift Supervisor',expires:'14:55',confidence:'high'},
+    {id:'REC-002',title:'Hold TSK-4402 · room 1202 under active DND',recordIds:['1202','TSK-4402'],reasons:['DND','Hard gate'],effect:'Do not enter · service window <b>16:00–18:00</b> recorded',requiresApproval:false,role:null,expires:'16:00',confidence:'high'},
+    {id:'REC-003',title:'Route room 1206 to engineering return-to-service',recordIds:['1206','MNT-221'],reasons:['OOO','Post-repair'],effect:'Controlled post-repair cleaning · <b>no auto-release</b>',requiresApproval:true,role:'Engineering + Supervisor',expires:'17:00',confidence:'medium'},
+    {id:'REC-004',title:'Request ETA for rooms 1202 and 1406 from front office',recordIds:['1202','1406'],reasons:['Missing ETA','Occupied'],effect:'Occupied DND · readiness cannot be forecast',requiresApproval:false,role:'Front Office',expires:'—',confidence:'high'}
+  ],
+  inspections: [
+    {room:'1204',assignee:'M. Haddad',submitted:'07:02',checklist:'8/8',status:'pending'},
+    {room:'1302',assignee:'S. Nasser',submitted:'06:58',checklist:'8/8',status:'pending'},
+    {room:'1402',assignee:'A. Rahman',submitted:'07:05',checklist:'8/8',status:'pending'}
+  ],
+  requests: [
+    {id:'GR-001',room:'1202',type:'Stayover Service',state:'DND',window:'16:00–18:00',note:'Guest requested privacy · no entry'},
+    {id:'GR-002',room:'1406',type:'Stayover Service',state:'DND',window:'—',note:'Guest requested privacy · escalate only for emergency'},
+    {id:'GR-003',room:'1304',type:'Turndown',state:'Allowed',window:'10:00–12:00',note:'Suite · approved service window'},
+    {id:'GR-004',room:'1205',type:'Arrival Prep',state:'Eligible',window:'—',note:'Vacant · no restriction · ETA 14:45'}
+  ],
+  discrepancies: [
+    {room:'1202',pms:'Occupied',physical:'Sleep',action:'Confirm stay · preserve DND'},
+    {room:'1308',pms:'Vacant',physical:'Person present',action:'Front office review'},
+    {room:'1406',pms:'Occupied',physical:'Skip',action:'Call guest · do not enter'}
+  ],
+  blocked: [
+    {room:'1206',block:'OOO',reason:'AC compressor',owner:'Engineering',next:'Repair confirm → post-repair clean → supervisor release'},
+    {room:'1305',block:'OOS',reason:'Water shutoff',owner:'Engineering',next:'Restore water → inspect → authorized return'},
+    {room:'1408',block:'OOO',reason:'Bathroom leak',owner:'Engineering',next:'Seal · dry · post-repair clean'}
+  ],
+  maintenance: [
+    {id:'MNT-221',room:'1206',block:'OOO',defect:'AC compressor failure',engineer:'K. Mansour',status:'In repair'},
+    {id:'MNT-224',room:'1305',block:'OOS',defect:'Water shutoff · riser',engineer:'K. Mansour',status:'Awaiting parts'},
+    {id:'MNT-226',room:'1408',block:'OOO',defect:'Bathroom leak',engineer:'R. Aziz',status:'Diagnosing'}
+  ],
+  staff: [
+    {id:'S-01',name:'A. Rahman',role:'Attendant',section:'A',capacity:8,assigned:6,credits:12,breakT:'15:00'},
+    {id:'S-02',name:'M. Haddad',role:'Attendant',section:'A',capacity:8,assigned:5,credits:10,breakT:'14:45'},
+    {id:'S-03',name:'L. Farah',role:'Attendant',section:'B',capacity:8,assigned:8,credits:8,breakT:'15:15'},
+    {id:'S-04',name:'S. Nasser',role:'Attendant',section:'B',capacity:8,assigned:6,credits:9,breakT:'15:30'},
+    {id:'S-05',name:'R. Aziz',role:'Engineer',section:'ENG',capacity:6,assigned:3,credits:0,breakT:'—'},
+    {id:'S-06',name:'K. Mansour',role:'Engineer',section:'ENG',capacity:6,assigned:4,credits:0,breakT:'—'}
+  ],
+  inventory: [
+    {name:'Bath towels',stock:68,min:40,unit:'pcs'},
+    {name:'Hand towels',stock:142,min:80,unit:'pcs'},
+    {name:'Bed sheets · king',stock:36,min:24,unit:'sets'},
+    {name:'Bathrobes',stock:22,min:30,unit:'pcs'},
+    {name:'Minibar · water',stock:210,min:150,unit:'btl'},
+    {name:'Amenities · soap',stock:95,min:60,unit:'pcs'}
+  ],
+  activity: [
+    {t:'07:12',text:'<b>Snapshot reconciled</b> · 0 conflicts · v.2026.10.20-0712',teal:true},
+    {t:'07:05',text:'<b>1402</b> clean submitted by A. Rahman · awaiting inspection',teal:false},
+    {t:'06:58',text:'<b>1302</b> clean submitted by S. Nasser · awaiting inspection',teal:false},
+    {t:'06:55',text:'<b>1208</b> inspected & released · ready',teal:true},
+    {t:'06:50',text:'<b>1404</b> inspected & released · ready',teal:true},
+    {t:'06:40',text:'<b>1203</b> inspected & released · ready',teal:true},
+    {t:'06:22',text:'<b>1206</b> set OOO · AC compressor',teal:false},
+    {t:'06:10',text:'<b>1401</b> inspected & released · ready',teal:true}
+  ],
+  approvals: [
+    {id:'APR-001',title:'Reassign TSK-4418 · Section B → Section A',role:'Shift Supervisor',expires:'14:55',status:'pending'},
+    {id:'APR-002',title:'Return room 1206 to service after repair',role:'Engineering + Supervisor',expires:'17:00',status:'pending'}
+  ],
+  audit: []
+};
+
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+
+function toast(msg,grey=false){
+  const t=document.createElement('div');
+  t.className='toast'+(grey?' grey':'');
+  t.innerHTML=`<span class="t-dot"></span><span>${msg}</span>`;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(30px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300)},3400);
+}
+
+function nowTime(){
+  const d=new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+function nowStamp(){
+  const d=new Date();
+  return nowTime()+':'+String(d.getSeconds()).padStart(2,'0');
+}
+
+function pushAudit(action,target,outcome){
+  state.audit.unshift({
+    time:nowStamp(),
+    actor:'SR · Shift Supervisor',
+    action,
+    target,
+    outcome,
+    corr:'cor-'+Math.random().toString(36).slice(2,8)
+  });
+  renderAudit();
+}
+
+const statusMeta = {
+  ready:{sym:'●',label:'Ready',cls:'ready'},
+  clean:{sym:'◐',label:'Clean',cls:'clean'},
+  ip:{sym:'◒',label:'In progress',cls:'ip'},
+  progress:{sym:'◒',label:'In progress',cls:'progress'},
+  dirty:{sym:'○',label:'Dirty',cls:'dirty'},
+  dnd:{sym:'⊘',label:'DND hold',cls:'dnd'},
+  ooo:{sym:'◼',label:'Out of Order',cls:'ooo'},
+  oos:{sym:'◻',label:'Out of Service',cls:'oos'}
+};
+
+/* OVERVIEW */
+function renderOverview(){
+  const ready = state.rooms.filter(r=>r.s==='ready').length;
+  const forecast = state.rooms.filter(r=>['clean','ip','progress'].includes(r.s)).length;
+  const missingEta = state.rooms.filter(r=>['dnd'].includes(r.s)||(r.occ==='occupied'&&!r.eta)).length;
+  const blocked = state.rooms.filter(r=>['dnd','ooo','oos'].includes(r.s)).length;
+
+  $('#kpi-ready').innerHTML = ready+'<span class="unit">/ 24</span>';
+  $('#kpi-forecast').textContent = forecast;
+  $('#kpi-eta').textContent = missingEta;
+  $('#kpi-blocked').textContent = blocked;
+  $('#hero-ready').textContent = ready;
+  $('#hero-forecast').textContent = forecast;
+  $('#hero-blocked').textContent = blocked;
+  $('#hero-rec').textContent = state.recommendations.length;
+
+  [['#spark1',[40,55,48,62,58,70,66,ready*6]],
+   ['#spark2',[30,42,38,50,46,55,52,forecast*8]],
+   ['#spark3',[20,25,22,28,26,30,28,missingEta*10]],
+   ['#spark4',[35,40,38,44,42,48,45,blocked*10]]].forEach(([sel,vals])=>{
+    const max=Math.max(...vals,1);
+    $(sel).innerHTML = vals.map(v=>`<span style="height:${Math.max(3,(v/max)*22)}px"></span>`).join('');
+  });
+
+  const hm=$('#heatmap'); hm.innerHTML='';
+  state.rooms.forEach(r=>{
+    const d=document.createElement('div');
+    d.className='hm-cell';
+    d.dataset.state = r.s==='progress'?'ip':r.s;
+    d.title = `${r.id} · ${statusMeta[r.s]?.label||r.s} · ${r.type}`;
+    d.onclick = ()=>{openDrawer(r.id); switchTab('rooms');};
+    hm.appendChild(d);
+  });
+
+  const af=$('#activity-feed'); af.innerHTML='';
+  state.activity.slice(0,8).forEach(a=>{
+    af.insertAdjacentHTML('beforeend',
+      `<div class="act-item"><span class="act-dot${a.teal?'':' grey'}"></span>
+        <div class="act-body"><div class="act-text">${a.text}</div>
+        <div class="act-time">${a.t} · shift AM</div></div></div>`);
+  });
+  $('#act-count').textContent = state.activity.length+' events';
+  $('#nav-rooms-badge').textContent = state.rooms.length;
+  $('#nav-insp-badge').textContent = state.inspections.filter(i=>i.status==='pending').length;
+  $('#nav-ai-badge').textContent = state.recommendations.length;
+}
+
+/* ROOMS */
+function renderRooms(){
+  const grid=$('#room-grid'); grid.innerHTML='';
+  const list = state.roomFilter==='all' ? state.rooms : state.rooms.filter(r=>r.s===state.roomFilter);
+  $('#cnt-all').textContent = state.rooms.length;
+  if(!list.length){grid.innerHTML='<div class="empty"><span class="sym">◻</span>No rooms match this filter.</div>';return;}
+  list.forEach(r=>{
+    const m = statusMeta[r.s] || {sym:'·',label:r.s};
+    const el=document.createElement('div');
+    el.className='room-cell'; el.dataset.s=r.s; el.tabIndex=0; el.setAttribute('role','button');
+    el.innerHTML=`
+      <div class="r-id"><span>${r.id}</span><span class="r-sym">${m.sym}</span></div>
+      <div class="r-type">${r.type} · ${r.floor}F</div>
+      <div class="r-status">${m.label}</div>
+      <div class="r-meta">${r.occ==='occupied'?'OCC':r.occ==='vacant'?'VAC':'BLK'} ${r.eta?'· ETA '+r.eta:''}</div>`;
+    el.onclick=()=>openDrawer(r.id);
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openDrawer(r.id);}};
+    grid.appendChild(el);
+  });
+}
+$$('#room-filters .chip').forEach(c=>{
+  c.onclick=()=>{
+    $$('#room-filters .chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active'); state.roomFilter=c.dataset.f; renderRooms();
+  };
+});
+
+/* DRAWER */
+let drawerRoom=null;
+function openDrawer(id){
+  const r=state.rooms.find(x=>x.id===id); if(!r) return;
+  drawerRoom=r;
+  $('#dr-title').textContent=r.id;
+  const m=statusMeta[r.s];
+  const task=state.tasks.find(t=>t.room===r.id);
+  $('#dr-body').innerHTML=`
+    <div style="margin-bottom:16px"><span class="badge ${r.s==='ready'?'badge-solid':r.s==='dnd'||r.s==='ooo'||r.s==='oos'?'':'badge-teal'}">${m.sym} ${m.label}</span></div>
+    <div class="kv"><span class="k">Type</span><span class="v">${r.type} · ${r.floor}F</span></div>
+    <div class="kv"><span class="k">Occupancy (FO)</span><span class="v">${r.occ}</span></div>
+    <div class="kv"><span class="k">Cleaning status</span><span class="v">${m.label}</span></div>
+    <div class="kv"><span class="k">Forecast ETA</span><span class="v">${r.eta||'—'}</span></div>
+    <div class="kv"><span class="k">Task</span><span class="v">${r.task||'—'}</span></div>
+    <div class="kv"><span class="k">Assignee</span><span class="v">${r.assignee||'—'}</span></div>
+    <div class="kv"><span class="k">Priority</span><span class="v">${r.priority||'—'}</span></div>
+    <div style="margin-top:14px;padding:11px;border-radius:8px;background:var(--light-04);border:1px solid var(--light-08);font-size:11px;color:var(--light-60);line-height:1.55"><b style="color:var(--light)">Note:</b> ${r.note}</div>
+    ${r.s==='dnd'?`<div style="margin-top:12px;padding:11px;border-radius:8px;background:var(--teal-05);border:1px solid var(--teal-40);font-size:11px;color:var(--teal);line-height:1.55"><b>Hard gate:</b> DND blocks ordinary service. Do not clear DND to improve a score. Escalate emergency or welfare concerns to the human hotel procedure.</div>`:''}
+    ${r.s==='ooo'||r.s==='oos'?`<div style="margin-top:12px;padding:11px;border-radius:8px;background:var(--teal-05);border:1px solid var(--teal-40);font-size:11px;color:var(--teal);line-height:1.55"><b>Service block:</b> OOO/OOS are not negative priority scores. Room release requires the approved return-to-service workflow.</div>`:''}`;
+  const foot=$('#dr-foot'); foot.innerHTML='';
+  if(task && task.status==='queued' && state.mode!=='manual'){
+    const b=document.createElement('button'); b.className='btn btn-primary'; b.textContent='Start task (governed)';
+    b.onclick=()=>startTask(task.id); foot.appendChild(b);
+  }
+  if(r.s==='clean'){
+    const b=document.createElement('button'); b.className='btn btn-primary'; b.textContent='Pass inspection';
+    b.onclick=()=>passInspection(r.id); foot.appendChild(b);
+  }
+  if(r.s==='dnd'){
+    const b=document.createElement('button'); b.className='btn btn-ghost'; b.textContent='Record deferment';
+    b.onclick=()=>{toast('Deferment recorded · DND held · no entry',true);pushAudit('record-deferment',r.id,'deferred');}; foot.appendChild(b);
+  }
+  const close=document.createElement('button'); close.className='btn btn-ghost'; close.textContent='Close'; close.onclick=()=>$('#drawer').classList.remove('open'); foot.appendChild(close);
+  $('#drawer').classList.add('open');
+}
+$('#dr-close').onclick=()=>$('#drawer').classList.remove('open');
+
+/* TASKS */
+function renderTasks(){
+  const tb=$('#task-tbody'); tb.innerHTML='';
+  state.tasks.forEach(t=>{
+    const statusCls = t.status==='in-progress'?'badge-teal':'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="mono">${t.id}</td><td class="strong">${t.room}</td><td>${t.type}</td><td>${t.assignee}</td>
+      <td><span class="badge ${t.priority==='high'?'badge-teal':''}">${t.priority}</span></td>
+      <td class="mono">${t.eta}</td>
+      <td><span class="badge ${statusCls}">${t.status.replace(/-/g,' ')}</span></td>
+      <td class="task-actions"></td>`;
+    const act=tr.querySelector('.task-actions');
+    if(t.status==='queued' && state.mode!=='manual'){
+      const b=document.createElement('button'); b.className='btn btn-sm btn-primary'; b.textContent='Start'; b.onclick=()=>startTask(t.id); act.appendChild(b);
+    } else if(t.status==='in-progress' && state.mode!=='manual'){
+      const b=document.createElement('button'); b.className='btn btn-sm'; b.textContent='Complete'; b.onclick=()=>completeTask(t.id); act.appendChild(b);
+    } else if(t.status==='awaiting-inspection'){
+      act.innerHTML='<span style="font-size:10px;color:var(--light-40)">Awaiting inspector</span>';
+    } else {
+      act.innerHTML='<span style="font-size:10px;color:var(--light-40)">—</span>';
+    }
+    tb.appendChild(tr);
+  });
+}
+
+function startTask(id){
+  if(state.mode==='manual'){toast('Manual mode · no agent-issued changes',true);return;}
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  const room=state.rooms.find(r=>r.id===t.room);
+  if(room && ['dnd','ooo','oos'].includes(room.s)){
+    toast('Blocked: '+statusMeta[room.s].label+' on room '+room.id,true);
+    pushAudit('start-task',id,'blocked: '+room.s); return;
+  }
+  t.status='in-progress'; if(room) room.s='progress';
+  pushAudit('start-task',id,'confirmed'); toast('Task '+id+' started · '+t.room);
+  renderTasks(); renderRooms(); renderOverview(); renderAudit();
+  if(drawerRoom && drawerRoom.id===t.room) openDrawer(t.room);
+}
+
+function completeTask(id){
+  if(state.mode==='manual'){toast('Manual mode · no agent-issued changes',true);return;}
+  const t=state.tasks.find(x=>x.id===id); if(!t) return;
+  t.status='awaiting-inspection';
+  const room=state.rooms.find(r=>r.id===t.room); if(room) room.s='clean';
+  state.inspections.push({room:t.room,assignee:t.assignee,submitted:nowTime(),checklist:'8/8',status:'pending'});
+  pushAudit('complete-task',id,'confirmed · pending inspection');
+  toast('Clean submitted for '+t.room+' · awaiting inspection');
+  renderTasks(); renderRooms(); renderOverview(); renderInspections(); renderAudit();
+}
+
+/* INSPECTION */
+function renderInspections(){
+  const tb=$('#insp-tbody'); tb.innerHTML='';
+  if(!state.inspections.length){tb.innerHTML='<tr><td colspan="6"><div class="empty">No rooms awaiting inspection.</div></td></tr>';return;}
+  state.inspections.forEach((i,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="strong">${i.room}</td><td>${i.assignee}</td><td class="mono">${i.submitted}</td>
+      <td>${i.checklist}</td><td><span class="badge ${i.status==='pending'?'badge-teal':''}">${i.status}</span></td>
+      <td class="insp-actions"></td>`;
+    const act=tr.querySelector('.insp-actions');
+    if(i.status==='pending' && state.mode!=='manual'){
+      const pass=document.createElement('button'); pass.className='btn btn-sm btn-primary'; pass.textContent='Pass'; pass.onclick=()=>passInspection(i.room,idx);
+      const fail=document.createElement('button'); fail.className='btn btn-sm btn-ghost'; fail.textContent='Fail'; fail.style.marginLeft='6px'; fail.onclick=()=>failInspection(i.room,idx);
+      act.appendChild(pass); act.appendChild(fail);
+    } else { act.innerHTML='<span style="font-size:10px;color:var(--light-40)">—</span>'; }
+    tb.appendChild(tr);
+  });
+}
+
+function passInspection(roomId,idx){
+  if(state.mode==='manual'){toast('Manual mode · no agent-issued changes',true);return;}
+  const room=state.rooms.find(r=>r.id===roomId); if(!room) return;
+  room.s='ready';
+  const iIdx = idx!==undefined?idx:state.inspections.findIndex(i=>i.room===roomId);
+  if(iIdx>=0) state.inspections.splice(iIdx,1);
+  pushAudit('pass-inspection',roomId,'confirmed · released');
+  toast(roomId+' inspected & released · ready');
+  renderRooms(); renderOverview(); renderInspections(); renderAudit();
+  if(drawerRoom && drawerRoom.id===roomId) openDrawer(roomId);
+}
+
+function failInspection(roomId,idx){
+  if(state.mode==='manual'){toast('Manual mode · no agent-issued changes',true);return;}
+  const room=state.rooms.find(r=>r.id===roomId); if(!room) return;
+  room.s='dirty';
+  const iIdx = idx!==undefined?idx:state.inspections.findIndex(i=>i.room===roomId);
+  if(iIdx>=0) state.inspections.splice(iIdx,1);
+  const newId='TSK-'+(4440+state.tasks.length);
+  state.tasks.push({id:newId,room:roomId,type:'Rework',assignee:room.assignee||'A. Rahman',priority:'high',eta:room.eta||'—',status:'queued',reasons:['Failed inspection']});
+  room.task=newId;
+  pushAudit('fail-inspection',roomId,'rework assigned '+newId);
+  toast(roomId+' failed inspection · rework '+newId+' assigned',true);
+  renderRooms(); renderOverview(); renderInspections(); renderTasks(); renderAudit();
+}
+
+/* ATTENDANT */
+const checklistItems=[
+  'Strip bed linen · inspect mattress',
+  'Clean bathroom · sanitize fixtures',
+  'Restock amenities & towels',
+  'Vacuum floors & under bed',
+  'Dust surfaces & mirrors',
+  'Restock minibar · note usage',
+  'Replace bathrobe & slippers',
+  'Final visual check · submit Clean'
+];
+let checklistState = checklistItems.map(()=>false);
+function renderAttendant(){
+  const cl=$('#checklist'); cl.innerHTML='';
+  checklistItems.forEach((txt,i)=>{
+    const el=document.createElement('div');
+    el.className='check-item'+(checklistState[i]?' done':'');
+    el.innerHTML=`<div class="check-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span>${txt}</span>`;
+    el.onclick=()=>{checklistState[i]=!checklistState[i]; renderAttendant();};
+    cl.appendChild(el);
+  });
+  const done=checklistState.filter(Boolean).length;
+  const pct=Math.round(done/checklistItems.length*100);
+  $('#att-progress').style.width=pct+'%';
+  $('#att-prog-label').textContent=`${done} / ${checklistItems.length} complete`;
+  $('#btn-submit-clean').disabled = done!==checklistItems.length;
+}
+$('#btn-submit-clean').onclick=()=>{
+  if(state.mode==='manual'){toast('Manual mode · no agent-issued changes',true);return;}
+  const room=state.rooms.find(r=>r.id==='1201'); if(!room) return;
+  if(['dnd','ooo','oos'].includes(room.s)){toast('Blocked: '+statusMeta[room.s].label,true);return;}
+  room.s='clean';
+  const t=state.tasks.find(x=>x.room==='1201'); if(t) t.status='awaiting-inspection';
+  state.inspections.push({room:'1201',assignee:'A. Rahman',submitted:nowTime(),checklist:'8/8',status:'pending'});
+  pushAudit('submit-clean','1201','confirmed · pending inspection');
+  toast('Clean submitted for 1201 · awaiting inspection');
+  checklistState=checklistItems.map(()=>false);
+  renderAttendant(); renderRooms(); renderOverview(); renderTasks(); renderInspections(); renderAudit();
+};
+
+/* REQUESTS */
+function renderRequests(){
+  const g=$('#requests-grid'); g.innerHTML='';
+  state.requests.forEach(r=>{
+    const blocked=r.state==='DND';
+    g.insertAdjacentHTML('beforeend',`
+      <div class="card">
+        <div class="card-head"><div class="card-title"><span class="tick"></span>${r.type}</div><span class="badge ${blocked?'':'badge-teal'}">${r.state}</span></div>
+        <div class="kv"><span class="k">Room</span><span class="v">${r.room}</span></div>
+        <div class="kv"><span class="k">Service window</span><span class="v">${r.window}</span></div>
+        <div style="margin-top:10px;padding:10px;border-radius:7px;background:var(--light-04);font-size:11px;color:var(--light-60);line-height:1.5">${r.note}</div>
+        ${blocked?`<div style="margin-top:10px;font-size:10.5px;color:var(--teal);display:flex;align-items:center;gap:6px"><span>⊘</span> Hard gate · ordinary service not eligible</div>`:''}
+      </div>`);
+  });
+}
+
+/* FRONT OFFICE */
+function renderFrontOffice(){
+  const dt=$('#disc-tbody'); dt.innerHTML='';
+  state.discrepancies.forEach(d=>{
+    dt.insertAdjacentHTML('beforeend',`<tr><td class="strong">${d.room}</td><td>${d.pms}</td><td>${d.physical}</td><td style="color:var(--light-60)">${d.action}</td></tr>`);
+  });
+  const rt=$('#readiness-tbody'); rt.innerHTML='';
+  state.rooms.filter(r=>['ready','clean','progress','dirty'].includes(r.s)).slice(0,8).forEach(r=>{
+    const actual = r.s==='ready'?'Ready':'—';
+    const forecast = r.s==='ready'?'—':(r.eta||'no ETA');
+    rt.insertAdjacentHTML('beforeend',`<tr><td class="strong">${r.id}</td><td>${actual==='Ready'?'<span class="badge badge-teal">Ready</span>':'<span style="color:var(--light-40)">—</span>'}</td><td class="mono">${forecast}</td><td style="color:var(--light-40)">—</td></tr>`);
+  });
+  const bt=$('#blocked-tbody'); bt.innerHTML='';
+  state.blocked.forEach(b=>{
+    bt.insertAdjacentHTML('beforeend',`<tr><td class="strong">${b.room}</td><td><span class="badge">${b.block}</span></td><td>${b.reason}</td><td>${b.owner}</td><td style="color:var(--light-60);font-size:10.5px">${b.next}</td></tr>`);
+  });
+}
+
+/* AI */
+function renderRecommendations(){
+  const list=$('#rec-list'); list.innerHTML='';
+  if(!state.recommendations.length){
+    list.innerHTML='<div class="card"><div class="empty"><span class="sym">◐</span>No active proposals. The agent is monitoring the snapshot.</div></div>'; return;
+  }
+  state.recommendations.forEach(rec=>{
+    const card=document.createElement('div');
+    card.className='rec-card';
+    card.innerHTML=`
+      <div class="rec-head"><div><div class="rec-id">${rec.id} · CONFIDENCE ${rec.confidence.toUpperCase()}</div><div class="rec-title">${rec.title}</div></div>
+      <span class="badge ${rec.requiresApproval?'':'badge-teal'}">${rec.requiresApproval?'Needs approval':'Advisory'}</span></div>
+      <div class="rec-reasons">${rec.reasons.map(x=>`<span class="rec-reason">${x}</span>`).join('')}</div>
+      <div class="rec-effect">${rec.effect}</div>
+      <div class="rec-actions">
+        ${rec.requiresApproval && state.mode!=='manual'
+          ? `<button class="btn btn-sm btn-primary" data-approve="${rec.id}">Approve & execute</button>
+             <button class="btn btn-sm btn-ghost" data-reject="${rec.id}">Reject</button>`
+          : state.mode==='manual'
+          ? `<span style="font-size:10.5px;color:var(--light-40)">Manual mode · no writes</span>`
+          : `<span style="font-size:10.5px;color:var(--teal)">Advisory · no approval needed</span>`}
+        <span class="rec-meta">Expires ${rec.expires} · ${rec.role||'—'}</span>
+      </div>`;
+    list.appendChild(card);
+  });
+  $$('[data-approve]').forEach(b=>{ b.onclick=()=>approveRec(b.dataset.approve); });
+  $$('[data-reject]').forEach(b=>{
+    b.onclick=()=>{
+      state.recommendations = state.recommendations.filter(r=>r.id!==b.dataset.reject);
+      pushAudit('reject-recommendation',b.dataset.reject,'rejected');
+      toast('Proposal '+b.dataset.reject+' rejected',true);
+      renderRecommendations(); renderOverview();
+    };
+  });
+}
+
+function approveRec(id){
+  if(state.mode==='manual'){toast('Manual mode · no writes',true);return;}
+  if(state.mode==='governed'){toast('Governed mode · server policy validates before execution');}
+  const rec=state.recommendations.find(r=>r.id===id); if(!rec) return;
+  state.recommendations = state.recommendations.filter(r=>r.id!==id);
+  state.approvals = state.approvals.filter(a=>!a.id.includes(id));
+  pushAudit('approve-recommendation',id,'confirmed · executed');
+  toast('Approved · '+id+' executed (demo)',false);
+  if(id==='REC-001'){
+    const t=state.tasks.find(x=>x.id==='TSK-4418'); if(t) t.assignee='A. Rahman';
+    const room=state.rooms.find(r=>r.id==='1205'); if(room) room.assignee='A. Rahman';
+  }
+  renderRecommendations(); renderOverview(); renderTasks(); renderRooms(); renderAudit();
+}
+
+/* ROSTER */
+function renderRoster(){
+  const g=$('#staff-grid'); g.innerHTML='';
+  state.staff.forEach(s=>{
+    const pct=Math.round(s.assigned/s.capacity*100);
+    g.insertAdjacentHTML('beforeend',`
+      <div class="card staff-card">
+        <div class="staff-avatar">${s.name.split(' ').map(x=>x[0]).join('')}</div>
+        <div class="staff-body">
+          <div class="staff-name">${s.name}</div><div class="staff-role">${s.role} · Section ${s.section}</div>
+          <div class="staff-meta"><span>Load <b>${s.assigned}/${s.capacity}</b></span>${s.credits?`<span>Credits <b>${s.credits}</b></span>`:''}${s.breakT!=='—'?`<span>Break <b>${s.breakT}</b></span>`:''}</div>
+          <div class="progress" style="margin-top:10px"><div class="progress-bar" style="width:${pct}%"></div></div>
+        </div>
+      </div>`);
+  });
+}
+
+/* MAINTENANCE */
+function renderMaintenance(){
+  const tb=$('#maint-tbody'); tb.innerHTML='';
+  state.maintenance.forEach(m=>{
+    tb.insertAdjacentHTML('beforeend',`
+      <tr><td class="mono">${m.id}</td><td class="strong">${m.room}</td><td><span class="badge">${m.block}</span></td>
+      <td>${m.defect}</td><td>${m.engineer}</td><td><span class="badge ${m.status==='In repair'?'badge-teal':''}">${m.status}</span></td>
+      <td>${m.block==='OOO'||m.block==='OOS'?'<span style="font-size:10.5px;color:var(--light-40)">Return-to-service workflow</span>':'—'}</td></tr>`);
+  });
+}
+
+/* INVENTORY */
+function renderInventory(){
+  const g=$('#inv-grid'); g.innerHTML='';
+  state.inventory.forEach(i=>{
+    const low = i.stock<i.min;
+    const pct=Math.min(100,Math.round(i.stock/(i.min*2)*100));
+    g.insertAdjacentHTML('beforeend',`
+      <div class="card">
+        <div class="card-head"><div class="card-title" style="font-size:12px">${i.name}</div><span class="badge ${low?'':'badge-teal'}">${low?'Low':'OK'}</span></div>
+        <div class="kpi-value" style="font-size:26px">${i.stock}<span class="unit">${i.unit}</span></div>
+        <div class="progress" style="margin-top:12px"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <div style="font-size:10px;color:var(--light-40);margin-top:7px">Minimum ${i.min} ${i.unit}</div>
+      </div>`);
+  });
+}
+
+/* AUDIT */
+function renderAudit(){
+  const al=$('#approvals-list'); al.innerHTML='';
+  if(!state.approvals.length){
+    al.innerHTML='<div class="empty" style="padding:20px"><span class="sym">◐</span>No pending approvals.</div>';
+  } else {
+    state.approvals.forEach(a=>{
+      al.insertAdjacentHTML('beforeend',`
+        <div style="padding:12px;border-radius:8px;background:var(--light-04);border:1px solid var(--light-08);margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+            <div><div style="font-size:12px;font-weight:600;margin-bottom:3px">${a.title}</div><div style="font-size:10px;color:var(--light-40)">${a.id} · ${a.role} · expires ${a.expires}</div></div>
+            <span class="badge">Pending</span>
+          </div>
+        </div>`);
+    });
+  }
+  const tb=$('#audit-tbody'); tb.innerHTML='';
+  if(!state.audit.length){
+    tb.innerHTML='<tr><td colspan="6"><div class="empty" style="padding:20px">No audit entries yet. Actions performed in this demo are logged here.</div></td></tr>';
+  }
+  state.audit.slice(0,20).forEach(a=>{
+    tb.insertAdjacentHTML('beforeend',`
+      <tr><td class="mono">${a.time}</td><td>${a.actor}</td><td>${a.action}</td><td class="strong">${a.target}</td><td>${a.outcome}</td><td class="mono" style="font-size:9.5px">${a.corr}</td></tr>`);
+  });
+  $('#audit-count').textContent = state.audit.length+' entries';
+}
+
+/* TABS */
+const tabTitles = {
+  overview:['Command Overview','DYAFA RIYADH OLIVE · 2026-10-20 · Shift AM'],
+  rooms:['Room Board','Live cleaning · occupancy · service-block states'],
+  tasks:['Task Sheet','Ranked eligible work · manual operations'],
+  attendant:['Attendant View','Mobile checklist execution · task-relevant notes'],
+  inspection:['Supervisor Inspection','Physical inspection required · rework linkage'],
+  requests:['Guest Requests','DND · service windows · entry restrictions'],
+  frontoffice:['Front Office','Occupancy discrepancies · readiness vs forecast'],
+  ai:['AI Agent · Recommendations','Governed proposals · no autonomous writes'],
+  roster:['Staff Roster','Sections · capacity · credits · breaks'],
+  maintenance:['Maintenance','OOO / OOS distinct workflows'],
+  inventory:['Inventory','Linen · amenities · minibar'],
+  audit:['Audit & Approval','Server-side policy · audit linkage'],
+  settings:['Configuration','Property scope · integration health']
+};
+
+function switchTab(tab){
+  state.tab=tab;
+  $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));
+  $$('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const pane=$('#tab-'+tab); if(pane) pane.classList.add('active');
+  const t=tabTitles[tab]; if(t){$('#page-title').textContent=t[0];$('#page-sub').textContent=t[1];}
+  if(tab==='overview') renderOverview();
+  if(tab==='rooms') renderRooms();
+  if(tab==='tasks') renderTasks();
+  if(tab==='attendant') renderAttendant();
+  if(tab==='inspection') renderInspections();
+  if(tab==='requests') renderRequests();
+  if(tab==='frontoffice') renderFrontOffice();
+  if(tab==='ai') renderRecommendations();
+  if(tab==='roster') renderRoster();
+  if(tab==='maintenance') renderMaintenance();
+  if(tab==='inventory') renderInventory();
+  if(tab==='audit') renderAudit();
+}
+$$('.nav-item').forEach(n=>{
+  n.onclick=()=>switchTab(n.dataset.tab);
+  n.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();switchTab(n.dataset.tab);}};
+});
+
+/* MODE */
+$$('.mode-pill').forEach(p=>{
+  const activate=()=>{
+    $$('.mode-pill').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active'); state.mode=p.dataset.mode;
+    const banner=$('#mode-banner'); banner.classList.toggle('show',state.mode==='governed');
+    const modeName = state.mode==='manual'?'Manual':state.mode==='recommendations'?'Recommendations':'Governed';
+    toast('Operating mode · '+modeName, state.mode==='manual');
+    switchTab(state.tab);
+  };
+  p.onclick=activate;
+  p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();}};
+});
+
+/* CLOCK */
+function tick(){
+  const d=new Date();
+  $('#clock').textContent = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+setInterval(tick,1000); tick();
+
+/* THREE.JS HERO */
+function initHero(){
+  const canvas=$('#hero-canvas'); if(!canvas || !window.THREE) return;
+  const w=canvas.clientWidth||800, h=canvas.clientHeight||220;
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(w,h,false);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);
+  camera.position.z=22;
+  const N=110;
+  const positions=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    positions[i*3]=(Math.random()-0.5)*44; positions[i*3+1]=(Math.random()-0.5)*22; positions[i*3+2]=(Math.random()-0.5)*24;
+  }
+  const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  const mat=new THREE.PointsMaterial({color:0x1ba9a4,size:0.22,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  const pts=new THREE.Points(geo,mat); scene.add(pts);
+  const lineGeo=new THREE.BufferGeometry(); const lineVerts=[];
+  const threshold=7.5;
+  for(let i=0;i<N;i++){
+    for(let j=i+1;j<N;j++){
+      const dx=positions[i*3]-positions[j*3], dy=positions[i*3+1]-positions[j*3+1], dz=positions[i*3+2]-positions[j*3+2];
+      if(dx*dx+dy*dy+dz*dz < threshold*threshold){
+        lineVerts.push(positions[i*3],positions[i*3+1],positions[i*3+2]); lineVerts.push(positions[j*3],positions[j*3+1],positions[j*3+2]);
+      }
+    }
+  }
+  lineGeo.setAttribute('position',new THREE.Float32BufferAttribute(lineVerts,3));
+  const lineMat=new THREE.LineBasicMaterial({color:0x1ba9a4,transparent:true,opacity:0.13});
+  const lines=new THREE.LineSegments(lineGeo,lineMat); scene.add(lines);
+  let mx=0,my=0;
+  window.addEventListener('mousemove',e=>{mx=(e.clientX/window.innerWidth-0.5); my=(e.clientY/window.innerHeight-0.5);});
+  function resize(){
+    const cw=canvas.clientWidth||w, ch=canvas.clientHeight||h;
+    renderer.setSize(cw,ch,false); camera.aspect=cw/ch; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',resize);
+  function animate(t){
+    requestAnimationFrame(animate);
+    pts.rotation.y=t*0.00004; pts.rotation.x=Math.sin(t*0.00008)*0.08;
+    lines.rotation.y=pts.rotation.y; lines.rotation.x=pts.rotation.x;
+    camera.position.x += (mx*6 - camera.position.x)*0.03;
+    camera.position.y += (-my*3 - camera.position.y)*0.03;
+    camera.lookAt(0,0,0);
+    renderer.render(scene,camera);
+  }
+  animate(0);
+}
+
+/* INIT */
+function init(){
+  renderOverview(); renderRooms(); renderTasks(); renderAttendant(); renderInspections();
+  renderRequests(); renderFrontOffice(); renderRecommendations(); renderRoster();
+  renderMaintenance(); renderInventory(); renderAudit(); initHero();
+  setTimeout(()=>toast('Dyafa Command ready · demo snapshot loaded'),600);
+}
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

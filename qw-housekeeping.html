@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dyafa · Housekeeping AI Automation System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.6/index.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace']
+      },
+      colors: {
+        brand: { 50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',300:'#86efac',400:'#4ade80',500:'#22c55e',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d' },
+        surface: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { scrollbar-width: thin; scrollbar-color: #334155 #0f172a; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  
+  .tab-btn { transition: all 0.2s ease; }
+  .tab-btn:hover { background: rgba(34,197,94,0.1); }
+  .tab-btn.active { background: rgba(34,197,94,0.15); border-left: 3px solid #22c55e; color: #4ade80; }
+  
+  .tab-content { display: none; animation: fadeIn 0.3s ease; }
+  .tab-content.active { display: block; }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes glow { 0%, 100% { box-shadow: 0 0 5px rgba(34,197,94,0.3); } 50% { box-shadow: 0 0 20px rgba(34,197,94,0.6); } }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes gradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+  
+  .pulse-dot { animation: pulse-dot 2s infinite; }
+  .slide-in { animation: slideIn 0.4s ease; }
+  .glow-border { animation: glow 3s infinite; }
+  .float { animation: float 3s ease-in-out infinite; }
+  
+  .room-cell { transition: all 0.2s; cursor: pointer; }
+  .room-cell:hover { transform: scale(1.05); z-index: 10; }
+  
+  .stat-card { transition: all 0.3s; }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+  
+  .modal-overlay { transition: opacity 0.3s; }
+  .modal-content { transition: transform 0.3s; }
+  
+  .ai-pulse { position: relative; }
+  .ai-pulse::before { content: ''; position: absolute; inset: -2px; border-radius: inherit; background: linear-gradient(45deg, #22c55e, #3b82f6, #8b5cf6, #22c55e); background-size: 400% 400%; animation: gradient 3s ease infinite; z-index: -1; opacity: 0.6; }
+  
+  .progress-ring { transition: stroke-dashoffset 0.5s ease; }
+  
+  table { border-collapse: separate; border-spacing: 0; }
+  th { position: sticky; top: 0; z-index: 5; }
+  
+  .toast { animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards; }
+  @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
+  
+  .cinematic-bg {
+    background: radial-gradient(ellipse at center, rgba(34,197,94,0.1) 0%, transparent 70%);
+  }
+  
+  .role-badge { transition: all 0.2s; }
+  .role-badge:hover { transform: scale(1.05); }
+  .role-badge.active { background: rgba(34,197,94,0.2); border-color: #22c55e; }
+  
+  .tour-step { transition: all 0.3s; }
+  .tour-step.active { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
+  
+  .workflow-step { position: relative; }
+  .workflow-step::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 32px;
+    bottom: -12px;
+    width: 2px;
+    background: linear-gradient(to bottom, #22c55e, transparent);
+  }
+  .workflow-step:last-child::before { display: none; }
+</style>
+</head>
+<body class="bg-surface-950 text-surface-200 font-sans min-h-screen">
+
+<!-- Cinematic Intro -->
+<div id="cinematicIntro" class="fixed inset-0 z-[100] bg-surface-950 flex items-center justify-center cinematic-bg">
+  <div class="text-center max-w-2xl px-6">
+    <div class="mb-8 float">
+      <div class="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-2xl">
+        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+    </div>
+    <h1 class="text-4xl font-bold text-white mb-4">DYAFA HOUSEKEEPING</h1>
+    <p class="text-xl text-surface-400 mb-2">AI Automation System</p>
+    <p class="text-sm text-surface-500 mb-8">Autonomous coordination, human authority</p>
+    <div class="bg-surface-900/50 border border-surface-800 rounded-xl p-6 mb-8 text-left">
+      <p class="text-sm text-surface-300 leading-relaxed">
+        A governed AI agent that reads the current snapshot, surfaces blockers, ranks eligible work and proposes a small actionable diff — while trained people clean, inspect and authorize.
+      </p>
+    </div>
+    <button onclick="exitCinematic()" class="bg-brand-500 hover:bg-brand-600 text-white px-8 py-3 rounded-xl font-medium transition shadow-lg shadow-brand-500/20">
+      Enter Dashboard
+    </button>
+    <p class="text-xs text-surface-600 mt-4">Press <kbd class="bg-surface-800 px-2 py-0.5 rounded">Esc</kbd> to skip</p>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="w-64 bg-surface-900 border-r border-surface-800 flex flex-col min-h-screen fixed left-0 top-0 bottom-0 z-40">
+  <!-- Logo -->
+  <div class="p-4 border-b border-surface-800">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center font-bold text-white text-sm">D</div>
+      <div>
+        <div class="text-white font-semibold text-sm">DYAFA</div>
+        <div class="text-surface-500 text-xs">Housekeeping AI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode Badge -->
+  <div class="px-4 py-3 border-b border-surface-800">
+    <div class="flex items-center gap-2 text-xs">
+      <span class="w-2 h-2 rounded-full bg-brand-400 pulse-dot"></span>
+      <span class="text-brand-400 font-medium">GOVERNED MODE</span>
+    </div>
+    <div class="text-surface-500 text-xs mt-1">v2.4.1 · Recommendations only</div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 py-2 overflow-y-auto">
+    <div class="px-3 py-2 text-xs text-surface-500 uppercase tracking-wider font-medium">Operations</div>
+    <button class="tab-btn active w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="overview">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Overview
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="roomboard">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+      Room Board
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="tasksheet">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      Task Sheet
+      <span class="ml-auto bg-brand-500/20 text-brand-400 text-xs px-1.5 py-0.5 rounded-full">24</span>
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="inspection">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Inspection
+      <span class="ml-auto bg-amber-500/20 text-amber-400 text-xs px-1.5 py-0.5 rounded-full">3</span>
+    </button>
+    
+    <div class="px-3 py-2 mt-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Coordination</div>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="guestrequests">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10vh.01M12 10vh.01M16 10vh.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      Guest Requests
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="aiagent">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      AI Agent
+      <span class="ml-auto w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+    </button>
+
+    <div class="px-3 py-2 mt-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Management</div>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="roster">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Roster
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="inventory">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+      Inventory
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="audit">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Audit & Approval
+    </button>
+    <button class="tab-btn w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm" data-tab="config">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Configuration
+    </button>
+  </nav>
+
+  <!-- Bottom Info -->
+  <div class="p-4 border-t border-surface-800">
+    <div class="flex items-center gap-2 text-xs text-surface-500">
+      <div class="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-surface-300 text-xs font-medium">SK</div>
+      <div>
+        <div class="text-surface-300">Shift Supervisor</div>
+        <div>DYAFA-RIYADH-01</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="ml-64 flex-1 min-h-screen">
+  <!-- Top Bar -->
+  <header class="sticky top-0 z-30 bg-surface-950/80 backdrop-blur-xl border-b border-surface-800 px-6 py-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 id="pageTitle" class="text-lg font-semibold text-white">Operations Overview</h1>
+        <span class="text-xs bg-surface-800 text-surface-400 px-2 py-1 rounded-md font-mono">2026-10-20 · AM Shift</span>
+        <span class="text-xs bg-blue-500/10 text-blue-400 px-2 py-1 rounded-md">DEMO</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Role Switcher -->
+        <div class="flex gap-1 bg-surface-800 rounded-lg p-1">
+          <button class="role-badge active text-xs px-2 py-1 rounded text-surface-300" data-role="supervisor">Supervisor</button>
+          <button class="role-badge text-xs px-2 py-1 rounded text-surface-400" data-role="attendant">Attendant</button>
+          <button class="role-badge text-xs px-2 py-1 rounded text-surface-400" data-role="frontdesk">Front Desk</button>
+          <button class="role-badge text-xs px-2 py-1 rounded text-surface-400" data-role="manager">Manager</button>
+        </div>
+        <div class="relative">
+          <input type="text" placeholder="Search rooms or commands..." class="bg-surface-800 border border-surface-700 rounded-lg px-3 py-1.5 text-sm text-surface-300 w-64 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20" id="globalSearch">
+          <kbd class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-surface-500 bg-surface-700 px-1.5 py-0.5 rounded">⌘K</kbd>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-2 h-2 rounded-full bg-brand-400 pulse-dot"></span>
+          <span class="text-surface-400" id="liveTime">10:15:42</span>
+        </div>
+        <button class="relative p-2 text-surface-400 hover:text-white transition" onclick="showNotifications()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">4</span>
+        </button>
+        <button onclick="startTour()" class="p-2 text-surface-400 hover:text-brand-400 transition" title="Guided Tour">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="p-6">
+    <!-- TAB: Overview -->
+    <div id="tab-overview" class="tab-content active">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-surface-500 uppercase tracking-wider">Actual Ready</span>
+            <span class="text-xs text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">▲ 3 since 06:00</span>
+          </div>
+          <div class="text-3xl font-bold text-white">14</div>
+          <div class="text-xs text-surface-500 mt-1">of 24 total rooms · verified</div>
+          <div class="mt-3 h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full" style="width:58%"></div>
+          </div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-surface-500 uppercase tracking-wider">Forecast Only</span>
+            <span class="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">Predicted</span>
+          </div>
+          <div class="text-3xl font-bold text-white">6</div>
+          <div class="text-xs text-surface-500 mt-1">Predicted · not confirmed ready</div>
+          <div class="mt-3 h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style="width:25%"></div>
+          </div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-surface-500 uppercase tracking-wider">Blocked Tasks</span>
+            <span class="text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">DND · OOO</span>
+          </div>
+          <div class="text-3xl font-bold text-white">3</div>
+          <div class="text-xs text-surface-500 mt-1">DND · occupancy · OOO holds</div>
+          <div class="mt-3 h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" style="width:12%"></div>
+          </div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4 glow-border">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-surface-500 uppercase tracking-wider">AI Proposals</span>
+            <span class="text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">Active</span>
+          </div>
+          <div class="text-3xl font-bold text-white">4</div>
+          <div class="text-xs text-surface-500 mt-1">Ranked recommendations</div>
+          <div class="mt-3 h-1.5 bg-surface-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-purple-500 to-purple-400 rounded-full" style="width:17%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Floor Heatmap -->
+        <div class="lg:col-span-2 bg-surface-900 border border-surface-800 rounded-xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-white">Floor Readiness Heatmap</h3>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-brand-500"></span>Ready</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-blue-500"></span>Clean</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-amber-500"></span>In Progress</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-500"></span>Dirty</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-surface-600"></span>DND</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-purple-500"></span>OOO</span>
+            </div>
+          </div>
+          <div id="heatmap" class="space-y-3"></div>
+        </div>
+
+        <!-- Shift Summary -->
+        <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">Shift Summary</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-surface-400">Rooms turned</span>
+              <span class="text-sm font-semibold text-white">9 / 12</span>
+            </div>
+            <div class="h-2 bg-surface-800 rounded-full overflow-hidden">
+              <div class="h-full bg-brand-500 rounded-full" style="width:75%"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-surface-400">Avg turn time</span>
+              <span class="text-sm font-semibold text-white">34 min</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-surface-400">Hands-on clean</span>
+              <span class="text-sm font-semibold text-white">22 min</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-surface-400">Inspections passed</span>
+              <span class="text-sm font-semibold text-brand-400">6 / 7</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-surface-400">Rework assigned</span>
+              <span class="text-sm font-semibold text-amber-400">1</span>
+            </div>
+            <div class="border-t border-surface-800 pt-3 mt-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-surface-400">DND holds</span>
+                <span class="text-sm font-semibold text-surface-300">1</span>
+              </div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-surface-400">Active OOO</span>
+                <span class="text-sm font-semibold text-purple-400">2</span>
+              </div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-surface-400">Active OOS</span>
+                <span class="text-sm font-semibold text-red-400">1</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Pending approvals</span>
+                <span class="text-sm font-semibold text-amber-400">2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Activity -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-brand-400 pulse-dot"></span>
+            Live Activity
+          </h3>
+          <span class="text-xs text-surface-500">8 events this shift</span>
+        </div>
+        <div id="liveActivity" class="space-y-2 max-h-64 overflow-y-auto"></div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">Room Status Distribution</h3>
+          <canvas id="statusChart" height="200"></canvas>
+        </div>
+        <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">Hourly Turnover Trend</h3>
+          <canvas id="trendChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Room Board -->
+    <div id="tab-roomboard" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Room Board</h2>
+          <p class="text-sm text-surface-500">Real-time room status across all floors</p>
+        </div>
+        <div class="flex gap-2">
+          <select id="floorFilter" class="bg-surface-800 border border-surface-700 rounded-lg px-3 py-1.5 text-sm text-surface-300 focus:outline-none focus:border-brand-500/50">
+            <option value="all">All Floors</option>
+            <option value="12">12F</option>
+            <option value="13">13F</option>
+            <option value="14">14F</option>
+          </select>
+          <select id="statusFilter" class="bg-surface-800 border border-surface-700 rounded-lg px-3 py-1.5 text-sm text-surface-300 focus:outline-none focus:border-brand-500/50">
+            <option value="all">All Status</option>
+            <option value="ready">Ready</option>
+            <option value="clean">Clean</option>
+            <option value="inprogress">In Progress</option>
+            <option value="dirty">Dirty</option>
+            <option value="dnd">DND</option>
+            <option value="ooo">OOO</option>
+            <option value="oos">OOS</option>
+          </select>
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Room</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Type</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Floor</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Occupancy</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Last Cleaned</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Priority</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="roomBoardBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Task Sheet -->
+    <div id="tab-tasksheet" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Manual Task Sheet</h2>
+          <p class="text-sm text-surface-500">Ranked by feasible deadline · confirmed urgency · queue age</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="filterTasks('all')" class="task-filter-btn bg-brand-500/20 text-brand-400 px-3 py-1.5 rounded-lg text-xs font-medium">All · 24</button>
+          <button onclick="filterTasks('ready')" class="task-filter-btn bg-surface-800 text-surface-400 px-3 py-1.5 rounded-lg text-xs font-medium">Ready · 14</button>
+          <button onclick="filterTasks('inprogress')" class="task-filter-btn bg-surface-800 text-surface-400 px-3 py-1.5 rounded-lg text-xs font-medium">In Progress · 4</button>
+          <button onclick="filterTasks('blocked')" class="task-filter-btn bg-surface-800 text-surface-400 px-3 py-1.5 rounded-lg text-xs font-medium">Blocked · 3</button>
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Task</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Room</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Type</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Assignee</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Priority</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">ETA</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="taskSheetBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Attendant Instructions Panel -->
+      <div class="mt-6 bg-surface-900 border border-surface-800 rounded-xl p-5">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Attendant Instructions · Room 1201
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Room</span>
+              <span class="text-sm text-surface-300">1201 · King · 12F</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Task</span>
+              <span class="text-sm text-surface-300">TSK-4412 · Departure Turn</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Window</span>
+              <span class="text-sm text-surface-300">Vacant, no restriction</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Access</span>
+              <span class="text-sm text-surface-300">Key card confirmed</span>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Guest Pref</span>
+              <span class="text-sm text-surface-300">Extra pillows · hypoallergenic</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Notes</span>
+              <span class="text-sm text-surface-300">Minibar restock · replace bathrobe</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Checklist</span>
+              <span class="text-sm text-surface-300">0 / 8 complete</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="text-xs text-surface-500 w-24 shrink-0">Inspection</span>
+              <span class="text-sm text-amber-400">Physical inspection required</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          <div class="flex items-center gap-2 text-xs text-amber-400 font-medium mb-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            SAFETY GATE
+          </div>
+          <p class="text-xs text-surface-400">Do not enter or start ordinary service under DND, unresolved occupancy or an unsafe condition. Record a deferment and contact the supervisor.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Inspection -->
+    <div id="tab-inspection" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Supervisor Inspection Queue</h2>
+          <p class="text-sm text-surface-500">Physical inspection required · screen prediction never substitutes</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-surface-500">
+          <span class="w-2 h-2 rounded-full bg-amber-400 pulse-dot"></span>
+          3 pending inspections
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden mb-6">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Room</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Assignee</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Submitted</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Checklist</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inspectionBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Occupancy Discrepancies -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Occupancy Discrepancies
+        </h3>
+        <p class="text-xs text-surface-500 mb-3">Sleep / skip / person mismatches</p>
+        <div class="bg-surface-900 border border-surface-800 rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-800/30">
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Room</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">PMS</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Physical</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody id="occupancyBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Readiness vs Forecast -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Readiness vs Forecast</h3>
+        <p class="text-xs text-surface-500 mb-3">Actual confirmed separate from predicted</p>
+        <div class="bg-surface-900 border border-surface-800 rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-800/30">
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Room</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Actual</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Forecast</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Δ</th>
+              </tr>
+            </thead>
+            <tbody id="forecastBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Blocked Room Return-to-Service -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          Blocked Room Return-to-Service
+        </h3>
+        <p class="text-xs text-surface-500 mb-3">OOO / OOS require approved workflow · no automatic release</p>
+        <div class="bg-surface-900 border border-surface-800 rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-800/30">
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Room</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Block</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Reason</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Owner</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Next step</th>
+              </tr>
+            </thead>
+            <tbody id="blockedRoomsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Guest Requests -->
+    <div id="tab-guestrequests" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Guest Requests & Coordination</h2>
+          <p class="text-sm text-surface-500">Front office coordination · real-time request tracking</p>
+        </div>
+        <button onclick="openNewRequestModal()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Request
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Open Requests</div>
+          <div class="text-2xl font-bold text-white">7</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Avg Response</div>
+          <div class="text-2xl font-bold text-brand-400">8 min</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Resolved Today</div>
+          <div class="text-2xl font-bold text-white">12</div>
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">ID</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Room</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Guest</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Request</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Priority</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Assigned</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="guestRequestsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: AI Agent -->
+    <div id="tab-aiagent" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            AI Automation Agent
+          </h2>
+          <p class="text-sm text-surface-500">Coordination Agent · Recommendations Mode</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full border border-blue-500/20">● Active</span>
+          <span class="text-xs bg-surface-800 text-surface-400 px-3 py-1 rounded-full">Governed Mode</span>
+        </div>
+      </div>
+
+      <!-- Agent Status -->
+      <div class="bg-gradient-to-r from-surface-900 to-surface-900/50 border border-surface-800 rounded-xl p-5 mb-6">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <div>
+            <div class="text-white font-semibold">DYAFA RIYADH OLIVE · AI Agent</div>
+            <div class="text-xs text-surface-500">Proposals ranked by feasible deadline, confirmed urgency, queue age, room-type pressure, travel efficiency and balanced workload</div>
+          </div>
+        </div>
+        <div class="p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+          <p class="text-xs text-surface-400">
+            <span class="text-blue-400 font-medium">ℹ No autonomous writes in this mode.</span> The server-side policy service makes the final eligibility decision. Proposals are recommendations only — trained people clean, inspect and authorize.
+          </p>
+        </div>
+      </div>
+
+      <!-- AI Proposals -->
+      <div class="mb-6">
+        <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-blue-400 pulse-dot"></span>
+          Active Proposals · 4
+        </h3>
+        <div id="aiProposals" class="space-y-3"></div>
+      </div>
+
+      <!-- AI Chat / Command -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+        <h3 class="text-sm font-semibold text-white mb-3">Agent Command Console</h3>
+        <div id="aiChatLog" class="space-y-3 mb-4 max-h-64 overflow-y-auto">
+          <div class="flex gap-3">
+            <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div class="bg-surface-800 rounded-lg px-3 py-2 text-sm text-surface-300 max-w-lg">
+              Good morning. I've analyzed the current snapshot. 14 rooms are confirmed ready, 6 are forecast-only. I have 4 actionable proposals for your review. The highest priority is reassigning Room 1305 to balance Fatima's workload.
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="aiCommandInput" placeholder="Ask the agent or enter a command..." class="flex-1 bg-surface-800 border border-surface-700 rounded-lg px-4 py-2 text-sm text-surface-300 focus:outline-none focus:border-blue-500/50" onkeypress="if(event.key==='Enter')sendAiCommand()">
+          <button onclick="sendAiCommand()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Send</button>
+        </div>
+        <div class="mt-3 flex gap-2 flex-wrap">
+          <button onclick="quickCommand('status')" class="text-xs bg-surface-800 hover:bg-surface-700 text-surface-400 px-3 py-1.5 rounded-lg transition">Current Status</button>
+          <button onclick="quickCommand('workload')" class="text-xs bg-surface-800 hover:bg-surface-700 text-surface-400 px-3 py-1.5 rounded-lg transition">Workload Balance</button>
+          <button onclick="quickCommand('priority')" class="text-xs bg-surface-800 hover:bg-surface-700 text-surface-400 px-3 py-1.5 rounded-lg transition">Priority Rooms</button>
+          <button onclick="quickCommand('forecast')" class="text-xs bg-surface-800 hover:bg-surface-700 text-surface-400 px-3 py-1.5 rounded-lg transition">Forecast Analysis</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Roster -->
+    <div id="tab-roster" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Staff Roster & Scheduling</h2>
+          <p class="text-sm text-surface-500">AM Shift · 2026-10-20</p>
+        </div>
+        <button onclick="openRosterModal()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Add Staff
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">On Shift</div>
+          <div class="text-2xl font-bold text-white">8</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Attendants</div>
+          <div class="text-2xl font-bold text-brand-400">5</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Inspectors</div>
+          <div class="text-2xl font-bold text-blue-400">2</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Avg Load</div>
+          <div class="text-2xl font-bold text-amber-400">3.0</div>
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Staff</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Role</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Floor</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Assigned</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Completed</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Inventory -->
+    <div id="tab-inventory" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Inventory System</h2>
+          <p class="text-sm text-surface-500">Supplies tracking · auto-reorder alerts</p>
+        </div>
+        <button onclick="openInventoryModal()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Add Item
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Total Items</div>
+          <div class="text-2xl font-bold text-white">156</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Low Stock</div>
+          <div class="text-2xl font-bold text-red-400">4</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Consumed Today</div>
+          <div class="text-2xl font-bold text-brand-400">38</div>
+        </div>
+        <div class="stat-card bg-surface-900 border border-surface-800 rounded-xl p-4">
+          <div class="text-xs text-surface-500 uppercase tracking-wider mb-2">Pending Orders</div>
+          <div class="text-2xl font-bold text-amber-400">2</div>
+        </div>
+      </div>
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Item</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Category</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">In Stock</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Min Level</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Consumed Today</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Status</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Audit -->
+    <div id="tab-audit" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Audit & Approval</h2>
+          <p class="text-sm text-surface-500">Expiry means review again · time never grants approval</p>
+        </div>
+        <div class="flex gap-2">
+          <select class="bg-surface-800 border border-surface-700 rounded-lg px-3 py-1.5 text-sm text-surface-300 focus:outline-none">
+            <option>All Actions</option>
+            <option>Approvals</option>
+            <option>Writes</option>
+            <option>Blocked</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pending Approvals -->
+      <div class="bg-surface-900 border border-amber-500/20 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Pending Approvals · 2
+        </h3>
+        <div class="space-y-3" id="pendingApprovals"></div>
+      </div>
+
+      <!-- Policy & Authorization -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Policy & Authorization</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-xs text-surface-500 uppercase tracking-wider mb-3">Current Role · Property Isolation</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-surface-400">Role</span><span class="text-surface-200">Shift Supervisor</span></div>
+              <div class="flex justify-between"><span class="text-surface-400">Property</span><span class="text-surface-200">DYAFA-RIYADH-01</span></div>
+              <div class="flex justify-between"><span class="text-surface-400">Policy version</span><span class="text-surface-200 font-mono text-xs">policy-2026.10.3</span></div>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-xs text-surface-500 uppercase tracking-wider mb-3">Permissions Matrix</h4>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-surface-400">Start assigned task</span>
+                <span class="text-xs bg-brand-500/10 text-brand-400 px-2 py-0.5 rounded">Allowed</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-surface-400">Cross-section reassign</span>
+                <span class="text-xs bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded">Requires approval</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-surface-400">PMS write · charge · DND clear</span>
+                <span class="text-xs bg-red-500/10 text-red-400 px-2 py-0.5 rounded">Blocked</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Log -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl overflow-hidden">
+        <div class="px-5 py-3 border-b border-surface-800 flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-white">Audit Log</h3>
+          <span class="text-xs text-surface-500">0 entries today</span>
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-surface-800/50">
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Time</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Actor</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Action</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Target</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Outcome</th>
+              <th class="text-left px-4 py-3 text-xs text-surface-500 uppercase tracking-wider font-medium">Correlation</th>
+            </tr>
+          </thead>
+          <tbody id="auditLogBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Configuration -->
+    <div id="tab-config" class="tab-content">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Configuration</h2>
+          <p class="text-sm text-surface-500">Property settings · integrations · safety gates</p>
+        </div>
+      </div>
+
+      <!-- Property Config -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Property Configuration</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Property ID</div>
+            <div class="text-sm text-white font-mono">DYAFA-RIYADH-01</div>
+          </div>
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Business Date</div>
+            <div class="text-sm text-white font-mono">2026-10-20</div>
+          </div>
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Release Standard</div>
+            <div class="text-sm text-white">Inspect-then-release</div>
+          </div>
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Sections</div>
+            <div class="text-sm text-white">A · B · C</div>
+          </div>
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Languages</div>
+            <div class="text-sm text-white">EN · AR (RTL)</div>
+          </div>
+          <div class="bg-surface-800/50 rounded-lg p-3">
+            <div class="text-xs text-surface-500 mb-1">Snapshot Version</div>
+            <div class="text-sm text-white font-mono">v.2026.10.20-0712</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Integration Health -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4">Integration Health</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-3 bg-surface-800/30 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+              <span class="text-sm text-surface-300">PMS Adapter</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-xs text-brand-400">Connected · OPERA Cloud</span>
+              <span class="text-xs text-surface-500">Last: 07:12:04</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-surface-800/30 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+              <span class="text-sm text-surface-300">Task Service</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-xs text-brand-400">Healthy</span>
+              <span class="text-xs text-surface-500">Last: 07:12:04</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-surface-800/30 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+              <span class="text-sm text-surface-300">Event Stream</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-xs text-brand-400">142 events/min</span>
+              <span class="text-xs text-surface-500">Last: 07:12:04</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-surface-800/30 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+              <span class="text-sm text-surface-300">Audit Store</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-xs text-brand-400">Healthy</span>
+              <span class="text-xs text-surface-500">Last: 07:12:04</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-surface-800/30 rounded-lg">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+              <span class="text-sm text-surface-300">Model Service</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-xs text-blue-400">Online · read-only</span>
+              <span class="text-xs text-surface-500">Last: 07:12:04</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 text-xs text-surface-500">Last reconcile: 07:12:04 · 0 conflicts</div>
+      </div>
+
+      <!-- Hard Safety Gates -->
+      <div class="bg-surface-900 border border-brand-500/20 rounded-xl p-5 mb-6">
+        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          Hard Safety Gates
+        </h3>
+        <div class="space-y-2">
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">DND / service-declined blocks ordinary entry</span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">Unresolved occupancy discrepancy blocks start</span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">OOO/OOS never treated as score penalty</span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">No auto-clear of DND to improve score</span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">Pending approvals remain pending</span>
+          </div>
+          <div class="flex items-center gap-3 text-sm">
+            <svg class="w-4 h-4 text-brand-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-surface-300">Failed writes remain visible · no duplicate tasks</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance & Service Blocks -->
+      <div class="bg-surface-900 border border-surface-800 rounded-xl p-5">
+        <h3 class="text-sm font-semibold text-white mb-4">Maintenance & Service Blocks</h3>
+        <p class="text-xs text-surface-500 mb-3">OOO and OOS have distinct inventory semantics</p>
+        <div class="bg-surface-900 border border-surface-800 rounded-lg overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-surface-800/30">
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Ticket</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Room</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Block</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Defect</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Engineer</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Status</th>
+                <th class="text-left px-4 py-2 text-xs text-surface-500 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody id="maintenanceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Overlay -->
+<div id="modalOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modalContent" class="bg-surface-900 border border-surface-700 rounded-2xl w-full max-w-lg mx-4 modal-content max-h-[80vh] overflow-y-auto"></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<!-- Room Detail Modal -->
+<div id="roomDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="bg-surface-900 border border-surface-700 rounded-2xl w-full max-w-md mx-4 p-6" id="roomDetailContent"></div>
+</div>
+
+<!-- Tour Overlay -->
+<div id="tourOverlay" class="fixed inset-0 z-[90] hidden">
+  <div class="absolute inset-0 bg-black/80"></div>
+  <div id="tourContent" class="relative z-10 flex items-center justify-center min-h-screen p-6">
+    <div class="bg-surface-900 border border-surface-700 rounded-2xl max-w-2xl w-full p-8">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-white">Guided Tour</h3>
+        <button onclick="endTour()" class="text-surface-400 hover:text-white">✕</button>
+      </div>
+      <div id="tourSteps" class="space-y-4"></div>
+      <div class="flex items-center justify-between mt-6 pt-6 border-t border-surface-800">
+        <button id="tourPrev" onclick="prevTourStep()" class="text-sm text-surface-400 hover:text-white transition" disabled>← Previous</button>
+        <span id="tourProgress" class="text-xs text-surface-500">Step 1 of 6</span>
+        <button id="tourNext" onclick="nextTourStep()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DATA ============
+const rooms = [
+  { id:'1201', type:'King', floor:'12', status:'inprogress', occupancy:'Vacant', lastCleaned:'—', priority:'high', assignee:'Fatima A.', eta:'14:30', task:'Departure Turn', checklist:'0/8', submitted:'10:05' },
+  { id:'1202', type:'Twin', floor:'12', status:'ready', occupancy:'Vacant', lastCleaned:'09:15', priority:'low', assignee:'Fatima A.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'09:20' },
+  { id:'1203', type:'King', floor:'12', status:'dirty', occupancy:'Checked-out', lastCleaned:'Yesterday', priority:'high', assignee:'—', eta:'11:00', task:'Departure Turn', checklist:'—', submitted:'08:00' },
+  { id:'1204', type:'Suite', floor:'12', status:'ready', occupancy:'In-house', lastCleaned:'08:45', priority:'low', assignee:'Nora S.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'08:50' },
+  { id:'1205', type:'King', floor:'12', status:'dnd', occupancy:'In-house', lastCleaned:'07:30', priority:'blocked', assignee:'—', eta:'—', task:'—', checklist:'—', submitted:'—' },
+  { id:'1206', type:'Twin', floor:'12', status:'clean', occupancy:'Vacant', lastCleaned:'10:00', priority:'medium', assignee:'Fatima A.', eta:'—', task:'Inspection pending', checklist:'7/8', submitted:'10:02' },
+  { id:'1207', type:'King', floor:'12', status:'ready', occupancy:'Vacant', lastCleaned:'09:50', priority:'low', assignee:'Sara M.', eta:'—', task:'Departure Turn', checklist:'8/8', submitted:'09:55' },
+  { id:'1208', type:'Twin', floor:'12', status:'ooo', occupancy:'—', lastCleaned:'3 days ago', priority:'blocked', assignee:'—', eta:'—', task:'Deep clean required', checklist:'—', submitted:'—' },
+  { id:'1301', type:'King', floor:'13', status:'ready', occupancy:'Vacant', lastCleaned:'08:30', priority:'low', assignee:'Layla K.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'08:35' },
+  { id:'1302', type:'Suite', floor:'13', status:'inprogress', occupancy:'Checked-out', lastCleaned:'—', priority:'high', assignee:'Layla K.', eta:'13:00', task:'Departure Turn', checklist:'3/8', submitted:'09:30' },
+  { id:'1303', type:'Twin', floor:'13', status:'dirty', occupancy:'Checked-out', lastCleaned:'Yesterday', priority:'high', assignee:'—', eta:'11:30', task:'Departure Turn', checklist:'—', submitted:'08:15' },
+  { id:'1304', type:'King', floor:'13', status:'ready', occupancy:'In-house', lastCleaned:'09:00', priority:'low', assignee:'Layla K.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'09:05' },
+  { id:'1305', type:'King', floor:'13', status:'ready', occupancy:'Vacant', lastCleaned:'10:10', priority:'medium', assignee:'Layla K.', eta:'—', task:'Touch-up', checklist:'6/8', submitted:'10:12' },
+  { id:'1306', type:'Twin', floor:'13', status:'oos', occupancy:'—', lastCleaned:'1 week ago', priority:'blocked', assignee:'—', eta:'—', task:'AC repair', checklist:'—', submitted:'—' },
+  { id:'1307', type:'King', floor:'13', status:'ready', occupancy:'Vacant', lastCleaned:'09:40', priority:'low', assignee:'Layla K.', eta:'—', task:'Departure Turn', checklist:'8/8', submitted:'09:45' },
+  { id:'1308', type:'Suite', floor:'13', status:'clean', occupancy:'Vacant', lastCleaned:'10:15', priority:'medium', assignee:'Layla K.', eta:'—', task:'Inspection pending', checklist:'7/8', submitted:'10:18' },
+  { id:'1401', type:'King', floor:'14', status:'ready', occupancy:'Vacant', lastCleaned:'08:00', priority:'low', assignee:'Hana R.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'08:05' },
+  { id:'1402', type:'Twin', floor:'14', status:'inprogress', occupancy:'Checked-out', lastCleaned:'—', priority:'high', assignee:'Hana R.', eta:'14:00', task:'Departure Turn', checklist:'5/8', submitted:'10:00' },
+  { id:'1403', type:'King', floor:'14', status:'ready', occupancy:'In-house', lastCleaned:'09:20', priority:'low', assignee:'Hana R.', eta:'—', task:'Stay Service', checklist:'8/8', submitted:'09:25' },
+  { id:'1404', type:'Suite', floor:'14', status:'dirty', occupancy:'Checked-out', lastCleaned:'Yesterday', priority:'high', assignee:'—', eta:'12:00', task:'Departure Turn', checklist:'—', submitted:'08:30' },
+  { id:'1405', type:'King', floor:'14', status:'ready', occupancy:'Vacant', lastCleaned:'10:05', priority:'medium', assignee:'Hana R.', eta:'—', task:'Touch-up', checklist:'6/8', submitted:'10:08' },
+  { id:'1406', type:'Twin', floor:'14', status:'ready', occupancy:'Vacant', lastCleaned:'09:30', priority:'low', assignee:'Hana R.', eta:'—', task:'Departure Turn', checklist:'8/8', submitted:'09:35' },
+  { id:'1407', type:'King', floor:'14', status:'inprogress', occupancy:'Checked-out', lastCleaned:'—', priority:'high', assignee:'Sara M.', eta:'13:30', task:'Departure Turn', checklist:'2/8', submitted:'10:10' },
+  { id:'1408', type:'Suite', floor:'14', status:'clean', occupancy:'Vacant', lastCleaned:'10:20', priority:'medium', assignee:'Sara M.', eta:'—', task:'Inspection pending', checklist:'7/8', submitted:'10:22' },
+];
+
+const staff = [
+  { name:'Fatima A.', role:'Attendant', floor:'12F', assigned:4, completed:2, status:'active' },
+  { name:'Nora S.', role:'Attendant', floor:'12F', assigned:3, completed:3, status:'active' },
+  { name:'Sara M.', role:'Attendant', floor:'14F', assigned:4, completed:1, status:'active' },
+  { name:'Layla K.', role:'Attendant', floor:'13F', assigned:5, completed:3, status:'active' },
+  { name:'Hana R.', role:'Attendant', floor:'14F', assigned:4, completed:2, status:'active' },
+  { name:'Ahmed B.', role:'Inspector', floor:'12-14F', assigned:3, completed:2, status:'active' },
+  { name:'Khalid T.', role:'Inspector', floor:'12-14F', assigned:2, completed:1, status:'active' },
+  { name:'Maryam J.', role:'Supervisor', floor:'All', assigned:0, completed:0, status:'on-shift' },
+];
+
+const inventory = [
+  { item:'Bath Towels', category:'Linen', stock:240, min:100, consumed:18, status:'ok' },
+  { item:'Hand Towels', category:'Linen', stock:180, min:80, consumed:12, status:'ok' },
+  { item:'Bed Sheets (King)', category:'Linen', stock:45, min:50, consumed:8, status:'low' },
+  { item:'Bed Sheets (Twin)', category:'Linen', stock:62, min:40, consumed:6, status:'ok' },
+  { item:'Pillowcases', category:'Linen', stock:300, min:120, consumed:24, status:'ok' },
+  { item:'Shampoo (30ml)', category:'Amenity', stock:85, min:100, consumed:15, status:'low' },
+  { item:'Soap Bars', category:'Amenity', stock:200, min:80, consumed:10, status:'ok' },
+  { item:'Toilet Paper', category:'Amenity', stock:150, min:60, consumed:8, status:'ok' },
+  { item:'Cleaning Solution', category:'Chemical', stock:12, min:10, consumed:3, status:'low' },
+  { item:'Glass Cleaner', category:'Chemical', stock:8, min:5, consumed:2, status:'ok' },
+  { item:'Bathrobes', category:'Linen', stock:28, min:20, consumed:2, status:'ok' },
+  { item:'Hypoallergenic Pillows', category:'Linen', stock:15, min:10, consumed:1, status:'low' },
+];
+
+const guestRequests = [
+  { id:'GR-001', room:'1204', guest:'Mr. Al-Rashid', request:'Extra towels + pillows', priority:'medium', status:'in-progress', assigned:'Nora S.' },
+  { id:'GR-002', room:'1304', guest:'Ms. Chen', request:'Late checkout — 14:00', priority:'low', status:'pending', assigned:'—' },
+  { id:'GR-003', room:'1403', guest:'Mr. Smith', request:'Iron & board to room', priority:'medium', status:'assigned', assigned:'Hana R.' },
+  { id:'GR-004', room:'1202', guest:'Mrs. Hassan', request:'Additional hangers', priority:'low', status:'completed', assigned:'Fatima A.' },
+  { id:'GR-005', room:'1401', guest:'Dr. Patel', request:'Room freshener', priority:'low', status:'completed', assigned:'Hana R.' },
+  { id:'GR-006', room:'1301', guest:'Mr. Tanaka', request:'Mini-bar restock', priority:'high', status:'in-progress', assigned:'Layla K.' },
+  { id:'GR-007', room:'1207', guest:'Ms. Williams', request:'Crib for infant', priority:'high', status:'pending', assigned:'—' },
+];
+
+const aiProposals = [
+  { id:'AI-001', title:'Reassign Room 1305', desc:'Balance Fatima\'s workload — move touch-up task from Layla (5 tasks) to Sara (4 tasks) for better travel efficiency.', priority:'medium', impact:'Balanced workload · -3 min travel', status:'pending' },
+  { id:'AI-002', title:'Priority Escalation: 1404', desc:'Suite departure on 14F has been dirty since 08:30. ETA 12:00 is at risk. Recommend immediate assignment.', priority:'high', impact:'Prevent ETA breach · VIP suite', status:'pending' },
+  { id:'AI-003', title:'Forecast Adjustment: 1308', desc:'Model predicts room 1308 will be needed by 15:00 based on PMS arrival data. Current status: clean but uninspected.', priority:'medium', impact:'Avoid check-in delay', status:'pending' },
+  { id:'AI-004', title:'DND Follow-up: 1205', desc:'Room 1205 has been DND since 07:30. Suggest gentle inquiry via front desk at 12:00 per policy.', priority:'low', impact:'Guest comfort · policy compliance', status:'pending' },
+];
+
+const maintenanceTickets = [
+  { ticket:'MT-301', room:'1408', block:'OOS', defect:'AC unit not cooling', engineer:'Eng. Omar', status:'in-progress' },
+  { ticket:'MT-302', room:'1208', block:'OOO', defect:'Deep clean + carpet shampoo', engineer:'—', status:'pending' },
+  { ticket:'MT-303', room:'1306', block:'OOS', defect:'Bathroom leak repair', engineer:'Eng. Youssef', status:'scheduled' },
+];
+
+const auditLog = [
+  { time:'10:15', actor:'System', action:'Snapshot generated', target:'v.2026.10.20-1015', outcome:'Success', correlation:'SNP-44201' },
+  { time:'10:12', actor:'Ahmed B.', action:'Inspection passed', target:'Room 1202', outcome:'Approved', correlation:'INS-44198' },
+  { time:'10:08', actor:'Nora S.', action:'Task completed', target:'Room 1204 · Stay Service', outcome:'Submitted for inspection', correlation:'TSK-4410' },
+  { time:'10:05', actor:'Fatima A.', action:'Task started', target:'Room 1201 · Departure Turn', outcome:'In progress', correlation:'TSK-4412' },
+  { time:'10:02', actor:'AI Agent', action:'Proposal generated', target:'AI-001 · Reassign 1305', outcome:'Pending review', correlation:'AI-44200' },
+  { time:'09:55', actor:'Sara M.', action:'Task completed', target:'Room 1207 · Departure Turn', outcome:'Submitted for inspection', correlation:'TSK-4409' },
+  { time:'09:45', actor:'Layla K.', action:'Task completed', target:'Room 1307 · Departure Turn', outcome:'Submitted for inspection', correlation:'TSK-4408' },
+  { time:'09:30', actor:'System', action:'DND detected', target:'Room 1205', outcome:'Task deferred', correlation:'DND-44190' },
+];
+
+const liveActivities = [
+  { time:'10:22', type:'complete', text:'Sara M. submitted Room 1408 for inspection', icon:'✓' },
+  { time:'10:18', type:'info', text:'AI Agent generated proposal AI-003 (Forecast adjustment)', icon:'⚡' },
+  { time:'10:15', type:'system', text:'Snapshot v.2026.10.20-1015 reconciled · 0 conflicts', icon:'⟳' },
+  { time:'10:12', type:'complete', text:'Inspector Ahmed B. passed Room 1202', icon:'✓' },
+  { time:'10:10', type:'start', text:'Sara M. started Room 1407 · Departure Turn', icon:'▶' },
+  { time:'10:08', type:'complete', text:'Nora S. completed Room 1204 · Stay Service', icon:'✓' },
+  { time:'10:05', type:'start', text:'Fatima A. started Room 1201 · Departure Turn', icon:'▶' },
+  { time:'10:02', type:'info', text:'AI Agent: 4 proposals ready for review', icon:'⚡' },
+];
+
+const tourSteps = [
+  { title: 'Welcome to DYAFA Housekeeping', content: 'This AI-powered system helps you manage housekeeping operations with autonomous coordination and human authority. Let me show you around.', icon: '🏨' },
+  { title: 'Operations Overview', content: 'The Overview tab shows real-time stats: actual ready rooms, forecasts, blocked tasks, and AI proposals. The heatmap gives you a visual floor status.', icon: '📊' },
+  { title: 'Task Management', content: 'The Task Sheet ranks work by deadline and urgency. You can start tasks, submit cleans, and track progress. Safety gates prevent unsafe operations.', icon: '✅' },
+  { title: 'AI Agent', content: 'The AI Agent analyzes your snapshot and proposes optimizations. It\'s in governed mode — recommendations only, no autonomous writes. You approve everything.', icon: '🤖' },
+  { title: 'Inspection & Quality', content: 'Physical inspections are required. The system tracks discrepancies, forecasts, and blocked room workflows. Screen predictions never substitute for real checks.', icon: '🔍' },
+  { title: 'Ready to Go!', content: 'You\'re all set! Use the role switcher to see different views, try the search bar, or explore each tab. The AI Agent is ready to help with any questions.', icon: '🚀' },
+];
+
+let currentTourStep = 0;
+
+// ============ INIT ============
+document.addEventListener('DOMContentLoaded', () => {
+  initTabs();
+  renderHeatmap();
+  renderLiveActivity();
+  renderRoomBoard();
+  renderTaskSheet();
+  renderInspection();
+  renderGuestRequests();
+  renderAIProposals();
+  renderRoster();
+  renderInventory();
+  renderAudit();
+  renderMaintenance();
+  renderPendingApprovals();
+  renderOccupancyDiscrepancies();
+  renderForecast();
+  renderBlockedRooms();
+  initCharts();
+  startClock();
+  initRoleSwitcher();
+  initKeyboardShortcuts();
+});
+
+// ============ CINEMATIC INTRO ============
+function exitCinematic() {
+  document.getElementById('cinematicIntro').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('cinematicIntro').style.display = 'none';
+  }, 300);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('cinematicIntro').style.display !== 'none') {
+      exitCinematic();
+    }
+  }
+});
+
+// ============ TABS ============
+function initTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('pageTitle').textContent = btn.textContent.trim().split('\n')[0].trim();
+    });
+  });
+}
+
+// ============ CLOCK ============
+function startClock() {
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('liveTime').textContent = now.toTimeString().split(' ')[0];
+  }, 1000);
+}
+
+// ============ ROLE SWITCHER ============
+function initRoleSwitcher() {
+  document.querySelectorAll('.role-badge').forEach(badge => {
+    badge.addEventListener('click', () => {
+      document.querySelectorAll('.role-badge').forEach(b => b.classList.remove('active'));
+      badge.classList.add('active');
+      const role = badge.dataset.role;
+      showToast(`Switched to ${role} view`, 'info');
+    });
+  });
+}
+
+// ============ KEYBOARD SHORTCUTS ============
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('globalSearch').focus();
+    }
+  });
+}
+
+// ============ HEATMAP ============
+function renderHeatmap() {
+  const container = document.getElementById('heatmap');
+  const floors = ['12', '13', '14'];
+  const statusColors = {
+    ready: 'bg-brand-500', clean: 'bg-blue-500', inprogress: 'bg-amber-500',
+    dirty: 'bg-red-500', dnd: 'bg-surface-600', ooo: 'bg-purple-500', oos: 'bg-red-700'
+  };
+  
+  floors.forEach(floor => {
+    const floorRooms = rooms.filter(r => r.floor === floor);
+    let html = `<div class="flex items-center gap-2">
+      <span class="text-xs text-surface-500 w-8 font-mono">${floor}F</span>
+      <div class="flex gap-1.5 flex-1">
